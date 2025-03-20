@@ -1,6 +1,5 @@
-# flutter_application
-
-A new Flutter project.
+# Parking App Frontend
+This application is a frontend version built with flutter, it is built up on [ParkingAppCliDb](https://github.com/Jafar-Hussein/ParkingAppCliDb), it uses the rest apis built by the backend to get data from the databases.
 
 ## Getting Started
 
