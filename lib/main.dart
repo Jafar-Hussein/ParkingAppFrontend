@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'MapScreen.dart';
+import 'MapScreen.dart'; // Ensure this import is correct for your directory structure
 
 void main() {
   runApp(const MyApp());
@@ -88,6 +86,67 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool isLoggedIn = false;
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _showLoginDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Login'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: _usernameController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                SizedBox(height: 8),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                if (_usernameController.text.isNotEmpty &&
+                    _passwordController.text.isNotEmpty) {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    isLoggedIn = true;
+                  });
+                } else {
+                  print("Please enter both username and password.");
+                }
+              },
+              child: const Text('Login'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +166,44 @@ class _MyHomePageState extends State<MyHomePage> {
             Icon(FontAwesomeIcons.parking, color: Colors.white),
             Icon(FontAwesomeIcons.car, color: Colors.white),
             Icon(FontAwesomeIcons.mapMarkerAlt, color: Colors.white),
+            PopupMenuButton<String>(
+              icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
+              onSelected: (String result) {
+                switch (result) {
+                  case 'Login':
+                    _showLoginDialog();
+                    break;
+                  case 'Logout':
+                    setState(() => isLoggedIn = false);
+                    break;
+                  case 'isDarkMode':
+                    widget.toggleTheme(!widget.isDarkMode);
+                    break;
+                }
+              },
+              itemBuilder:
+                  (BuildContext context) => <PopupMenuEntry<String>>[
+                    if (!isLoggedIn)
+                      const PopupMenuItem<String>(
+                        value: 'Login',
+                        child: Text('Login'),
+                      ),
+                    if (isLoggedIn) ...[
+                      const PopupMenuItem<String>(
+                        value: 'Profile',
+                        child: Text('Profile'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'isDarkMode',
+                        child: Text('Toggle Dark Mode'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'Logout',
+                        child: Text('Logout'),
+                      ),
+                    ],
+                  ],
+            ),
           ],
         ),
       ),
