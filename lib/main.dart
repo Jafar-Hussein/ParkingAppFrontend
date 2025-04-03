@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'MapScreen.dart'; // Ensure this import is correct for your directory structure
+import './pages/ParkingPage.dart';
+import './pages/ParkingSpacePage.dart';
+import './pages/VehiclePage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -147,6 +150,29 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void navigateToPage(String page) {
+    switch (page) {
+      case 'Parking':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ParkingPage()),
+        );
+        break;
+      case 'Vehicle':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => VehiclePage()),
+        );
+        break;
+      case 'ParkingSpace':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => ParkingSpacePage()),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,11 +189,23 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            Icon(FontAwesomeIcons.parking, color: Colors.white),
-            Icon(FontAwesomeIcons.car, color: Colors.white),
-            Icon(FontAwesomeIcons.mapMarkerAlt, color: Colors.white),
+            IconButton(
+              icon: Icon(FontAwesomeIcons.parking, color: Colors.white),
+              onPressed: () => navigateToPage('Parking'),
+            ),
+            IconButton(
+              icon: Icon(FontAwesomeIcons.car, color: Colors.white),
+              onPressed: () => navigateToPage('Vehicle'),
+            ),
+            IconButton(
+              icon: Icon(FontAwesomeIcons.mapMarkerAlt, color: Colors.white),
+              onPressed: () => navigateToPage('ParkingSpace'),
+            ),
             PopupMenuButton<String>(
               icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
+              offset:
+                  isLoggedIn ? const Offset(80, -160) : const Offset(50, -70),
+
               onSelected: (String result) {
                 switch (result) {
                   case 'Login':
