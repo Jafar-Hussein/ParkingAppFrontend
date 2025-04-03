@@ -89,7 +89,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isLoggedIn = false;
+  bool isLoggedIn = false; // Define isLoggedIn here
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -151,26 +151,32 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void navigateToPage(String page) {
+    Widget nextPage;
+
     switch (page) {
       case 'Parking':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ParkingPage()),
+        nextPage = ParkingPage(
+          isDarkMode: widget.isDarkMode,
+          toggleTheme: widget.toggleTheme,
         );
         break;
       case 'Vehicle':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => VehiclePage()),
+        nextPage = VehiclePage(
+          isDarkMode: widget.isDarkMode,
+          toggleTheme: widget.toggleTheme,
         );
         break;
       case 'ParkingSpace':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ParkingSpacePage()),
+        nextPage = ParkingSpacePage(
+          isDarkMode: widget.isDarkMode,
+          toggleTheme: widget.toggleTheme,
         );
         break;
+      default:
+        return;
     }
+
+    Navigator.push(context, MaterialPageRoute(builder: (_) => nextPage));
   }
 
   @override
