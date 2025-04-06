@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'MapScreen.dart'; // Ensure this import is correct for your directory structure
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+import 'MapScreen.dart';
 import './pages/ParkingPage.dart';
 import './pages/ParkingSpacePage.dart';
 import './pages/VehiclePage.dart';
@@ -17,7 +20,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _isDarkMode = false; // State to track theme mode
+  bool _isDarkMode = false;
 
   void toggleTheme(bool isDark) {
     setState(() {
@@ -26,10 +29,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   ThemeData customDarkTheme() {
-    // Start with the default dark theme.
     ThemeData base = ThemeData.dark();
-
-    // Use copyWith to modify only specific aspects of the theme.
     return base.copyWith(
       primaryColor: Colors.blueGrey[800],
       colorScheme: base.colorScheme.copyWith(
@@ -60,8 +60,8 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Parking App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(), // Default light theme
-      darkTheme: customDarkTheme(), // Custom dark theme
+      theme: ThemeData.light(),
+      darkTheme: customDarkTheme(),
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: MyHomePage(
         title: 'Parking App',
@@ -89,16 +89,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool isLoggedIn = false; // Define isLoggedIn here
+  bool isLoggedIn = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
+  String? loggedInUser;
+  int? loggedInUserId;
 
   void _showLoginDialog() {
     showDialog(
@@ -111,33 +107,47 @@ class _MyHomePageState extends State<MyHomePage> {
               children: <Widget>[
                 TextField(
                   controller: _usernameController,
-                  obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Username',
                     border: OutlineInputBorder(),
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(),
                   ),
+                  obscureText: true,
                 ),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_usernameController.text.isNotEmpty &&
                     _passwordController.text.isNotEmpty) {
-                  Navigator.of(context).pop();
-                  setState(() {
-                    isLoggedIn = true;
-                  });
+                  final res = await http.get(
+                    Uri.parse(
+                      'http://10.0.2.2:8081/persons/namn/${_usernameController.text}',
+                    ),
+                  );
+
+                  if (res.statusCode == 200) {
+                    final person = jsonDecode(res.body);
+                    setState(() {
+                      isLoggedIn = true;
+                      loggedInUser = person['namn'];
+                      loggedInUserId = person['id'];
+                    });
+                    Navigator.of(context).pop();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Användare hittades inte.")),
+                    );
+                  }
                 } else {
                   print("Please enter both username and password.");
                 }
@@ -151,6 +161,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void navigateToPage(String page) {
+    if (!isLoggedIn || loggedInUser == null) {
+      _showLoginDialog();
+      return;
+    }
+
     Widget nextPage;
 
     switch (page) {
@@ -164,6 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
         nextPage = VehiclePage(
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
+          ownerName: loggedInUser!,
         );
         break;
       case 'ParkingSpace':
@@ -182,36 +198,31 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Expanded(
-            flex: 1,
-            child: MapScreen(), // Embed the MapScreen directly
-          ),
-        ],
-      ),
+      body: Column(children: [Expanded(flex: 1, child: MapScreen())]),
       bottomNavigationBar: BottomAppBar(
         color: Theme.of(context).primaryColor,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
             IconButton(
-              icon: Icon(FontAwesomeIcons.parking, color: Colors.white),
+              icon: const Icon(FontAwesomeIcons.parking, color: Colors.white),
               onPressed: () => navigateToPage('Parking'),
             ),
             IconButton(
-              icon: Icon(FontAwesomeIcons.car, color: Colors.white),
+              icon: const Icon(FontAwesomeIcons.car, color: Colors.white),
               onPressed: () => navigateToPage('Vehicle'),
             ),
             IconButton(
-              icon: Icon(FontAwesomeIcons.mapMarkerAlt, color: Colors.white),
+              icon: const Icon(
+                FontAwesomeIcons.mapMarkerAlt,
+                color: Colors.white,
+              ),
               onPressed: () => navigateToPage('ParkingSpace'),
             ),
             PopupMenuButton<String>(
               icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
               offset:
                   isLoggedIn ? const Offset(80, -160) : const Offset(50, -70),
-
               onSelected: (String result) {
                 switch (result) {
                   case 'Login':

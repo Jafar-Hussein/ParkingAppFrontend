@@ -55,10 +55,13 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                 (_) => VehiclePage(
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
+                  ownerName:
+                      'alex', // <-- Lägg till detta (eller hämta dynamiskt från inloggning)
                 ),
           ),
         );
         break;
+
       case 2:
         Navigator.pushReplacement(
           context,
