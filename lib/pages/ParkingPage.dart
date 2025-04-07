@@ -7,11 +7,13 @@ import '../navigation/Nav.dart';
 class ParkingPage extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
+  final String ownerName;
 
   const ParkingPage({
     Key? key,
     required this.isDarkMode,
     required this.toggleTheme,
+    required this.ownerName,
   }) : super(key: key);
 
   @override
@@ -26,10 +28,11 @@ class _ParkingPageState extends State<ParkingPage> {
 
   final String apiBase = 'http://10.0.2.2:8081';
 
-  // Pagination
   int historyPage = 0;
   int spacesPage = 0;
   final int itemsPerPage = 3;
+
+  bool sortByNewest = true;
 
   @override
   void initState() {
@@ -44,7 +47,9 @@ class _ParkingPageState extends State<ParkingPage> {
       final parkingSpaceRes = await http.get(
         Uri.parse('$apiBase/parkingspaces'),
       );
-      final vehicleRes = await http.get(Uri.parse('$apiBase/vehicles'));
+      final vehicleRes = await http.get(
+        Uri.parse('$apiBase/vehicles/owner/${widget.ownerName}'),
+      );
 
       if (historyRes.statusCode == 200 &&
           parkingSpaceRes.statusCode == 200 &&
@@ -66,79 +71,49 @@ class _ParkingPageState extends State<ParkingPage> {
 
   Future<void> startParking(int spaceId, Map vehicle) async {
     final now = DateTime.now();
-
     final payload = {
-      "vehicle": {
-        "id": vehicle['id'],
-        "registreringsnummer": vehicle['registreringsnummer'],
-        "typ": vehicle['typ'],
-        "owner": {
-          "id": vehicle['owner']['id'],
-          "namn": vehicle['owner']['namn'],
-          "personnummer": vehicle['owner']['personnummer'],
-        },
-      },
+      "vehicle": vehicle,
       "parkingSpace": {"id": spaceId},
       "startTime": now.toIso8601String(),
       "price": 0.0,
     };
-
     final res = await http.post(
       Uri.parse('$apiBase/parkings'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(payload),
     );
-
-    if (res.statusCode == 200) {
-      loadData();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kunde inte starta parkering")),
-      );
-    }
+    if (res.statusCode == 200) loadData();
   }
 
   Future<void> stopParking(int parkingId, Map parking) async {
-    final updatedParking = {
-      "id": parking['id'],
-      "vehicle": parking['vehicle'],
-      "parkingSpace": parking['parkingSpace'],
-      "startTime": parking['startTime'],
-      "endTime": DateTime.now().toIso8601String(),
-    };
-
+    final updated = {...parking, "endTime": DateTime.now().toIso8601String()};
     final res = await http.put(
       Uri.parse('$apiBase/parkings/$parkingId'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(updatedParking),
+      body: jsonEncode(updated),
     );
-
-    if (res.statusCode == 200) {
-      loadData();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kunde inte avsluta parkering")),
-      );
-    }
-  }
-
-  List<dynamic> get pagedHistory {
-    final ongoing = parkingHistory.where((p) => p['endTime'] == null).toList();
-    final finished =
-        parkingHistory.where((p) => p['endTime'] != null).toList()
-          ..sort((a, b) => b['startTime'].compareTo(a['startTime']));
-
-    final int start = historyPage * itemsPerPage;
-    final int end = (start + itemsPerPage).clamp(0, finished.length);
-    final paginatedFinished = finished.sublist(start, end);
-
-    return [...ongoing, ...paginatedFinished];
+    if (res.statusCode == 200) loadData();
   }
 
   List<dynamic> get pagedSpaces {
-    final int start = spacesPage * itemsPerPage;
-    final int end = (start + itemsPerPage).clamp(0, availableSpaces.length);
+    final start = spacesPage * itemsPerPage;
+    final end = (start + itemsPerPage).clamp(0, availableSpaces.length);
     return availableSpaces.sublist(start, end);
+  }
+
+  List<dynamic> get pagedHistory {
+    final finished = parkingHistory.where((p) => p['endTime'] != null).toList();
+
+    finished.sort(
+      (a, b) =>
+          sortByNewest
+              ? b['startTime'].compareTo(a['startTime'])
+              : a['startTime'].compareTo(b['startTime']),
+    );
+
+    final start = historyPage * itemsPerPage;
+    final end = (start + itemsPerPage).clamp(0, finished.length);
+    return finished.sublist(start, end);
   }
 
   @override
@@ -150,6 +125,7 @@ class _ParkingPageState extends State<ParkingPage> {
             selectedIndex: 0,
             toggleTheme: widget.toggleTheme,
             isDarkMode: widget.isDarkMode,
+            ownerName: widget.ownerName,
           ),
           Expanded(
             child:
@@ -161,40 +137,51 @@ class _ParkingPageState extends State<ParkingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "\u{1F4CD} Lediga parkeringsplatser:",
+                            "📍 Lediga parkeringsplatser:",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          ...pagedSpaces.map(
-                            (space) => Card(
-                              child: ListTile(
-                                title: Text(space['address'] ?? 'Okänd adress'),
-                                subtitle: Text(
-                                  "Pris per timme: ${space['pricePerHour']} kr",
-                                ),
-                                trailing: PopupMenuButton<Map>(
-                                  icon: const Icon(Icons.directions_car),
-                                  itemBuilder:
-                                      (_) =>
-                                          vehicles
-                                              .map(
-                                                (v) => PopupMenuItem<Map>(
-                                                  value: v,
-                                                  child: Text(
-                                                    v['registreringsnummer'],
+                          if (vehicles.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(
+                                "Inga fordon registrerade.",
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            )
+                          else
+                            ...pagedSpaces.map(
+                              (space) => Card(
+                                child: ListTile(
+                                  title: Text(
+                                    space['address'] ?? 'Okänd adress',
+                                  ),
+                                  subtitle: Text(
+                                    "Pris per timme: ${space['pricePerHour']} kr",
+                                  ),
+                                  trailing: PopupMenuButton<Map>(
+                                    icon: const Icon(Icons.directions_car),
+                                    itemBuilder:
+                                        (_) =>
+                                            vehicles
+                                                .map(
+                                                  (v) => PopupMenuItem<Map>(
+                                                    value: v,
+                                                    child: Text(
+                                                      v['registreringsnummer'],
+                                                    ),
                                                   ),
-                                                ),
-                                              )
-                                              .toList(),
-                                  onSelected: (selectedVehicle) {
-                                    startParking(space['id'], selectedVehicle);
-                                  },
+                                                )
+                                                .toList(),
+                                    onSelected: (selected) {
+                                      startParking(space['id'], selected);
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -203,7 +190,7 @@ class _ParkingPageState extends State<ParkingPage> {
                                     spacesPage > 0
                                         ? () => setState(() => spacesPage--)
                                         : null,
-                                icon: const Icon(Icons.arrow_back),
+                                icon: Icon(Icons.arrow_back),
                               ),
                               Text("Sida ${spacesPage + 1}"),
                               IconButton(
@@ -212,18 +199,45 @@ class _ParkingPageState extends State<ParkingPage> {
                                             availableSpaces.length
                                         ? () => setState(() => spacesPage++)
                                         : null,
-                                icon: const Icon(Icons.arrow_forward),
+                                icon: Icon(Icons.arrow_forward),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const Text(
-                            "\u{1F4CB} Parkeringshistorik:",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  "📋 Parkeringshistorik:",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              DropdownButton<bool>(
+                                value: sortByNewest,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      sortByNewest = value;
+                                    });
+                                  }
+                                },
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: true,
+                                    child: Text("Nyast först"),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: false,
+                                    child: Text("Äldst först"),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+
                           ...pagedHistory.map(
                             (entry) => Card(
                               child: ListTile(
@@ -258,7 +272,7 @@ class _ParkingPageState extends State<ParkingPage> {
                                     historyPage > 0
                                         ? () => setState(() => historyPage--)
                                         : null,
-                                icon: const Icon(Icons.arrow_back),
+                                icon: Icon(Icons.arrow_back),
                               ),
                               Text("Sida ${historyPage + 1}"),
                               IconButton(
@@ -271,7 +285,7 @@ class _ParkingPageState extends State<ParkingPage> {
                                                 .length
                                         ? () => setState(() => historyPage++)
                                         : null,
-                                icon: const Icon(Icons.arrow_forward),
+                                icon: Icon(Icons.arrow_forward),
                               ),
                             ],
                           ),

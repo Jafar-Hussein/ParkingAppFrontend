@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import '../pages/ParkingPage.dart';
 import '../pages/ParkingSpacePage.dart';
 import '../pages/VehiclePage.dart';
-import '../main.dart'; // Ensure the path is correct
 
 class CustomNavigationRail extends StatefulWidget {
   final int selectedIndex;
   final Function(bool) toggleTheme;
   final bool isDarkMode;
+  final String ownerName; // <-- Lägg till
 
   const CustomNavigationRail({
     Key? key,
     required this.selectedIndex,
     required this.toggleTheme,
     required this.isDarkMode,
+    required this.ownerName, // <-- Lägg till
   }) : super(key: key);
 
   @override
@@ -43,6 +44,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                 (_) => ParkingPage(
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
+                  ownerName: widget.ownerName, // <-- Dynamiskt
                 ),
           ),
         );
@@ -55,13 +57,11 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                 (_) => VehiclePage(
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
-                  ownerName:
-                      'alex', // <-- Lägg till detta (eller hämta dynamiskt från inloggning)
+                  ownerName: widget.ownerName, // <-- Dynamiskt
                 ),
           ),
         );
         break;
-
       case 2:
         Navigator.pushReplacement(
           context,
@@ -70,6 +70,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                 (_) => ParkingSpacePage(
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
+                  ownerName: widget.ownerName,
                 ),
           ),
         );

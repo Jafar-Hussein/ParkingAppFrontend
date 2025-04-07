@@ -21,12 +21,14 @@ class VehiclePage extends StatefulWidget {
   _VehiclePageState createState() => _VehiclePageState();
 }
 
+// ... import statements
+
 class _VehiclePageState extends State<VehiclePage> {
   final int rowsPerPage = 5;
   int currentPage = 0;
   bool isLoading = true;
-
   List<VehicleModel> allVehicles = [];
+  Map<String, dynamic>? owner;
 
   String get apiUrl =>
       'http://10.0.2.2:8081/vehicles/owner/${widget.ownerName}';
@@ -34,18 +36,37 @@ class _VehiclePageState extends State<VehiclePage> {
   @override
   void initState() {
     super.initState();
-    fetchVehicles();
+    fetchOwnerAndVehicles();
   }
 
-  Future<void> fetchVehicles() async {
+  Future<void> fetchOwnerAndVehicles() async {
     setState(() => isLoading = true);
     try {
+      final ownerRes = await http.get(
+        Uri.parse('http://10.0.2.2:8081/persons/namn/${widget.ownerName}'),
+      );
+
+      if (ownerRes.statusCode == 200) {
+        owner = jsonDecode(ownerRes.body);
+      } else {
+        throw Exception("Kunde inte hämta ägarinformation");
+      }
+
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        final filtered =
+            data
+                .where(
+                  (item) =>
+                      item['owner'] != null &&
+                      item['owner']['namn'] == widget.ownerName,
+                )
+                .toList();
+
         setState(() {
           allVehicles =
-              data.map((item) => VehicleModel.fromJson(item)).toList();
+              filtered.map((item) => VehicleModel.fromJson(item)).toList();
         });
       } else {
         print('Fel vid hämtning av fordon: ${response.statusCode}');
@@ -89,17 +110,20 @@ class _VehiclePageState extends State<VehiclePage> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                if (owner == null) return;
+
                 final newVehicle = {
                   "registreringsnummer": regController.text,
                   "typ": typController.text,
-                  "owner": {"namn": widget.ownerName},
+                  "owner": owner,
                 };
+
                 await http.post(
                   Uri.parse('http://10.0.2.2:8081/vehicles'),
                   headers: {'Content-Type': 'application/json'},
                   body: jsonEncode(newVehicle),
                 );
-                fetchVehicles();
+                fetchOwnerAndVehicles();
               },
               child: Text('Spara'),
             ),
@@ -113,63 +137,9 @@ class _VehiclePageState extends State<VehiclePage> {
     );
   }
 
-  Future<void> editVehicleDialog(VehicleModel vehicle) async {
-    final TextEditingController regController = TextEditingController(
-      text: vehicle.registreringsnummer,
-    );
-    final TextEditingController typController = TextEditingController(
-      text: vehicle.typ,
-    );
-
-    await showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text('Redigera fordon'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: regController,
-                  decoration: InputDecoration(labelText: 'Registreringsnummer'),
-                ),
-                TextField(
-                  controller: typController,
-                  decoration: InputDecoration(labelText: 'Typ'),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  final updatedVehicle = {
-                    "id": vehicle.id,
-                    "registreringsnummer": regController.text,
-                    "typ": typController.text,
-                    "owner": {"namn": widget.ownerName},
-                  };
-                  await http.put(
-                    Uri.parse('http://10.0.2.2:8081/vehicles/${vehicle.id}'),
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode(updatedVehicle),
-                  );
-                  fetchVehicles();
-                },
-                child: Text('Spara'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text('Avbryt'),
-              ),
-            ],
-          ),
-    );
-  }
-
   Future<void> deleteVehicle(int id) async {
     await http.delete(Uri.parse('http://10.0.2.2:8081/vehicles/$id'));
-    fetchVehicles();
+    fetchOwnerAndVehicles();
   }
 
   @override
@@ -197,6 +167,7 @@ class _VehiclePageState extends State<VehiclePage> {
             selectedIndex: 1,
             toggleTheme: widget.toggleTheme,
             isDarkMode: widget.isDarkMode,
+            ownerName: widget.ownerName,
           ),
           Expanded(
             child:
@@ -206,74 +177,49 @@ class _VehiclePageState extends State<VehiclePage> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            itemCount: currentVehicles.length + 1,
+                            itemCount: currentVehicles.length,
                             itemBuilder: (context, index) {
-                              if (index < currentVehicles.length) {
-                                final vehicle = currentVehicles[index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 8.0,
-                                    horizontal: 10.0,
+                              final vehicle = currentVehicles[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                  horizontal: 10.0,
+                                ),
+                                child: ListTile(
+                                  title: Text(vehicle.typ),
+                                  subtitle: Text(
+                                    "RegNr: ${vehicle.registreringsnummer}",
                                   ),
-                                  child: ListTile(
-                                    title: Text(vehicle.typ),
-                                    subtitle: Text(
-                                      "RegNr: ${vehicle.registreringsnummer}",
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(Icons.edit),
-                                          onPressed:
-                                              () => editVehicleDialog(vehicle),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.delete,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed:
-                                              () => deleteVehicle(vehicle.id),
-                                        ),
-                                      ],
-                                    ),
+                                  trailing: IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => deleteVehicle(vehicle.id),
                                   ),
-                                );
-                              } else {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12.0,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.arrow_back),
-                                        onPressed:
-                                            currentPage > 0
-                                                ? () => setState(
-                                                  () => currentPage--,
-                                                )
-                                                : null,
-                                      ),
-                                      Text(
-                                        'Sida ${currentPage + 1} av $totalPages',
-                                      ),
-                                      IconButton(
-                                        icon: Icon(Icons.arrow_forward),
-                                        onPressed:
-                                            currentPage < totalPages - 1
-                                                ? () => setState(
-                                                  () => currentPage++,
-                                                )
-                                                : null,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
+                                ),
+                              );
                             },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.arrow_back),
+                                onPressed:
+                                    currentPage > 0
+                                        ? () => setState(() => currentPage--)
+                                        : null,
+                              ),
+                              Text('Sida ${currentPage + 1} av $totalPages'),
+                              IconButton(
+                                icon: Icon(Icons.arrow_forward),
+                                onPressed:
+                                    currentPage < totalPages - 1
+                                        ? () => setState(() => currentPage++)
+                                        : null,
+                              ),
+                            ],
                           ),
                         ),
                       ],

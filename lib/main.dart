@@ -96,19 +96,19 @@ class _MyHomePageState extends State<MyHomePage> {
   String? loggedInUser;
   int? loggedInUserId;
 
-  void _showLoginDialog() {
+  void _showLoginDialog({required bool isRegister}) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Login'),
+          title: Text(isRegister ? 'Registrera' : 'Logga in'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 TextField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
+                    labelText: 'Användarnamn',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -116,10 +116,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 TextField(
                   controller: _passwordController,
                   decoration: const InputDecoration(
-                    labelText: 'Password',
+                    labelText: 'Personnummer',
                     border: OutlineInputBorder(),
                   ),
-                  obscureText: true,
                 ),
               ],
             ),
@@ -129,30 +128,63 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () async {
                 if (_usernameController.text.isNotEmpty &&
                     _passwordController.text.isNotEmpty) {
-                  final res = await http.get(
-                    Uri.parse(
-                      'http://10.0.2.2:8081/persons/namn/${_usernameController.text}',
-                    ),
-                  );
-
-                  if (res.statusCode == 200) {
-                    final person = jsonDecode(res.body);
-                    setState(() {
-                      isLoggedIn = true;
-                      loggedInUser = person['namn'];
-                      loggedInUserId = person['id'];
-                    });
-                    Navigator.of(context).pop();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Användare hittades inte.")),
+                  if (isRegister) {
+                    final createRes = await http.post(
+                      Uri.parse('http://10.0.2.2:8081/persons'),
+                      headers: {'Content-Type': 'application/json'},
+                      body: jsonEncode({
+                        'namn': _usernameController.text,
+                        'personnummer': _passwordController.text,
+                      }),
                     );
+
+                    if (createRes.statusCode == 200) {
+                      final person = jsonDecode(createRes.body);
+                      setState(() {
+                        isLoggedIn = true;
+                        loggedInUser = person['namn'];
+                        loggedInUserId = person['id'];
+                      });
+                      Navigator.of(context).pop();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Registrering misslyckades."),
+                        ),
+                      );
+                    }
+                  } else {
+                    final res = await http.get(
+                      Uri.parse(
+                        'http://10.0.2.2:8081/persons/namn/${_usernameController.text}',
+                      ),
+                    );
+
+                    if (res.statusCode == 200) {
+                      final person = jsonDecode(res.body);
+                      if (person['personnummer'] == _passwordController.text) {
+                        setState(() {
+                          isLoggedIn = true;
+                          loggedInUser = person['namn'];
+                          loggedInUserId = person['id'];
+                        });
+                        Navigator.of(context).pop();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Fel personnummer.")),
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Användare hittades inte."),
+                        ),
+                      );
+                    }
                   }
-                } else {
-                  print("Please enter both username and password.");
                 }
               },
-              child: const Text('Login'),
+              child: Text(isRegister ? 'Registrera' : 'Logga in'),
             ),
           ],
         );
@@ -162,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void navigateToPage(String page) {
     if (!isLoggedIn || loggedInUser == null) {
-      _showLoginDialog();
+      _showLoginDialog(isRegister: false);
       return;
     }
 
@@ -173,6 +205,7 @@ class _MyHomePageState extends State<MyHomePage> {
         nextPage = ParkingPage(
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
+          ownerName: loggedInUser!,
         );
         break;
       case 'Vehicle':
@@ -186,6 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
         nextPage = ParkingSpacePage(
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
+          ownerName: loggedInUser!,
         );
         break;
       default:
@@ -222,11 +256,14 @@ class _MyHomePageState extends State<MyHomePage> {
             PopupMenuButton<String>(
               icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
               offset:
-                  isLoggedIn ? const Offset(80, -160) : const Offset(50, -70),
+                  isLoggedIn ? const Offset(80, -120) : const Offset(50, -110),
               onSelected: (String result) {
                 switch (result) {
                   case 'Login':
-                    _showLoginDialog();
+                    _showLoginDialog(isRegister: false);
+                    break;
+                  case 'Register':
+                    _showLoginDialog(isRegister: true);
                     break;
                   case 'Logout':
                     setState(() => isLoggedIn = false);
@@ -238,23 +275,24 @@ class _MyHomePageState extends State<MyHomePage> {
               },
               itemBuilder:
                   (BuildContext context) => <PopupMenuEntry<String>>[
-                    if (!isLoggedIn)
+                    if (!isLoggedIn) ...[
                       const PopupMenuItem<String>(
                         value: 'Login',
-                        child: Text('Login'),
+                        child: Text('Logga in'),
                       ),
+                      const PopupMenuItem<String>(
+                        value: 'Register',
+                        child: Text('Registrera'),
+                      ),
+                    ],
                     if (isLoggedIn) ...[
                       const PopupMenuItem<String>(
-                        value: 'Profile',
-                        child: Text('Profile'),
-                      ),
-                      const PopupMenuItem<String>(
                         value: 'isDarkMode',
-                        child: Text('Toggle Dark Mode'),
+                        child: Text('Byt tema'),
                       ),
                       const PopupMenuItem<String>(
                         value: 'Logout',
-                        child: Text('Logout'),
+                        child: Text('Logga ut'),
                       ),
                     ],
                   ],
