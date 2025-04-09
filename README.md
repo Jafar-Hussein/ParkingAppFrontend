@@ -56,7 +56,12 @@ git clone https://github.com/Jafar-Hussein/ParkingAppFlutter.git
 flutter pub get
 ```
 
-4. kör projektet
+4. Hämta api nyckel
+```
+Skapa konto i https://manage.thunderforest.com/dashboard och hämta din nyckel och url från atlas map och klistra in det i MapScreen filen där det står urlTemplate
+
+```
+5. kör projektet
 ```
 flutter run
 ```

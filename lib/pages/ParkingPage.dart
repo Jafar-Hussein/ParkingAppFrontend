@@ -101,6 +101,9 @@ class _ParkingPageState extends State<ParkingPage> {
     return availableSpaces.sublist(start, end);
   }
 
+  List<dynamic> get ongoingParkings =>
+      parkingHistory.where((p) => p['endTime'] == null).toList();
+
   List<dynamic> get pagedHistory {
     final finished = parkingHistory.where((p) => p['endTime'] != null).toList();
 
@@ -204,6 +207,36 @@ class _ParkingPageState extends State<ParkingPage> {
                             ],
                           ),
                           const SizedBox(height: 20),
+                          if (ongoingParkings.isNotEmpty) ...[
+                            const Text(
+                              "🕒 Pågående parkeringar:",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            ...ongoingParkings.map(
+                              (entry) => Card(
+                                child: ListTile(
+                                  title: Text(
+                                    "${entry['vehicle']['registreringsnummer']} - ${entry['parkingSpace']['address']}",
+                                  ),
+                                  subtitle: Text(
+                                    "Start: ${entry['startTime']}",
+                                  ),
+                                  trailing: ElevatedButton(
+                                    onPressed:
+                                        () => stopParking(entry['id'], entry),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                    ),
+                                    child: const Text("Avsluta"),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           Row(
                             children: [
                               const Expanded(
@@ -237,7 +270,6 @@ class _ParkingPageState extends State<ParkingPage> {
                               ),
                             ],
                           ),
-
                           ...pagedHistory.map(
                             (entry) => Card(
                               child: ListTile(
@@ -247,20 +279,7 @@ class _ParkingPageState extends State<ParkingPage> {
                                 subtitle: Text(
                                   "Start: ${entry['startTime']}\nPris: ${entry['price']} kr",
                                 ),
-                                trailing:
-                                    entry['endTime'] == null
-                                        ? ElevatedButton(
-                                          onPressed:
-                                              () => stopParking(
-                                                entry['id'],
-                                                entry,
-                                              ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                          ),
-                                          child: const Text("Avsluta"),
-                                        )
-                                        : const Text("Avslutad"),
+                                trailing: const Text("Avslutad"),
                               ),
                             ),
                           ),
