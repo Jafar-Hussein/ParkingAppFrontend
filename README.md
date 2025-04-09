@@ -1,15 +1,62 @@
-# Parking App Frontend
-This application is a frontend version built with flutter, it is built up on [ParkingAppCliDb](https://github.com/Jafar-Hussein/ParkingAppCliDb), it uses the rest apis built by the backend to get data from the databases.
+# 🚗 Parkeringsapplikation – Flutter Frontend
 
-## Getting Started
+Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [ParkingAppCliDb](https://github.com/Jafar-Hussein/ParkingAppCliDb) – ett backendprojekt med REST API:er för hantering av användare, fordon och parkeringar. Applikationen är byggd för att användas av slutanvändare som vill:
 
-This project is a starting point for a Flutter application.
+- Registrera sig och logga in
+- Lägga till och hantera fordon
+- Se lediga parkeringsplatser
+- Starta och avsluta parkering
+- Se parkeringshistorik
 
-A few resources to get you started if this is your first Flutter project:
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🧭 Funktionalitet
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 1. Användarhantering
+- Registrering av nya användare med namn och personnummer
+- Inloggning för befintliga användare
+- Automatisk identifiering av användare vid alla operationer
+
+### 2. Fordonshantering
+- Visa användarens egna fordon
+- Lägga till och ta bort fordon
+
+### 3. Parkeringsfunktioner
+- Visa lediga parkeringsplatser (med pris)
+- Starta en parkering genom att välja fordon
+- Avsluta pågående parkeringar
+- Se historik över avslutade parkeringar
+
+---
+
+## 🧩 Extra funktioner (för högre betyg)
+
+- 🌗 Mörkt/Ljust tema som kan växlas via meny
+- 📄 Pagination för:
+  - Parkeringshistorik
+  - Lediga parkeringsplatser
+  - Fordonslistor
+- 📍 Karta (via `flutter_map`) på startsidan
+
+---
+
+## 🛠️ Installation & Körning
+
+1. Klona projektet:
+   ```bash
+   git clone https://github.com/Jafar-Hussein/ParkingAppFlutter.git
+   ``` 
+2. Navigera in i projektmappen
+```
+   cd parkingAppFlutter
+```
+
+3. Installera beroende
+```
+flutter pub get
+```
+
+4. kör projektet
+```
+flutter run
+```
