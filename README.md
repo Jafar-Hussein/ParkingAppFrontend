@@ -43,9 +43,9 @@ Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [Pa
 ## 🛠️ Installation & Körning
 
 1. Klona projektet:
-   ```bash
-   git clone https://github.com/Jafar-Hussein/ParkingAppFlutter.git
-   ``` 
+```bash
+git clone https://github.com/Jafar-Hussein/ParkingAppFlutter.git
+``` 
 2. Navigera in i projektmappen
 ```
    cd parkingAppFlutter
