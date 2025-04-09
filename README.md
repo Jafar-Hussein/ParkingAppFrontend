@@ -38,6 +38,13 @@ Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [Pa
   - Fordonslistor
 - 📍 Karta (via `flutter_map`) på startsidan
 
+## ⚠️ Kända begränsningar
+
+- Det finns ingen validering av formulärinmatning (t.ex. tomma fält vid registrering)
+- Inloggning sker enbart via namn/personnummer utan säkerhetsåtgärder
+- Ingen sessionhantering (användaren är ”inloggad” tills appen startas om)
+- Karta visar bara en statisk plats (Stockholm)
+
 ---
 
 ## 🛠️ Installation & Körning
