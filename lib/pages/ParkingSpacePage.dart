@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/parkingplace/parking_space_bloc.dart';
+import '../bloc/parkingplace/parking_space_event.dart';
+import '../bloc/parkingplace/parking_space_state.dart';
+import '../repository/ParkingSpaceRepository.dart';
 import '../navigation/Nav.dart';
 
 class ParkingSpacePage extends StatefulWidget {
@@ -10,59 +12,25 @@ class ParkingSpacePage extends StatefulWidget {
   final String ownerName;
 
   const ParkingSpacePage({
-    Key? key,
+    super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-  }) : super(key: key);
+  });
 
   @override
-  _ParkingSpaceState createState() => _ParkingSpaceState();
+  _ParkingSpacePageState createState() => _ParkingSpacePageState();
 }
 
-class _ParkingSpaceState extends State<ParkingSpacePage> {
-  final int rowsPerPage = 7;
-  int currentPage = 0;
-  List<dynamic> parkingSpaces = [];
-  bool isLoading = true;
+class _ParkingSpacePageState extends State<ParkingSpacePage> {
+  int _currentParkingPage = 0;
+  final int _rowsPerPage = 7;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchParkingSpaces();
-  }
-
-  Future<void> fetchParkingSpaces() async {
-    setState(() => isLoading = true);
-    try {
-      final response = await http.get(
-        Uri.parse('http://10.0.2.2:8081/parkingspaces'),
-      );
-      if (response.statusCode == 200) {
-        setState(() {
-          parkingSpaces = json.decode(response.body);
-        });
-      } else {
-        print('Fel vid hämtning av parkeringsplatser: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Fel: $e');
-    } finally {
-      setState(() => isLoading = false);
-    }
-  }
-
-  int get totalPages => (parkingSpaces.length / rowsPerPage).ceil();
+  void _goToNextPage() => setState(() => _currentParkingPage++);
+  void _goToPreviousPage() => setState(() => _currentParkingPage--);
 
   @override
   Widget build(BuildContext context) {
-    final int start = currentPage * rowsPerPage;
-    final int end =
-        (start + rowsPerPage > parkingSpaces.length)
-            ? parkingSpaces.length
-            : start + rowsPerPage;
-    final List<dynamic> currentData = parkingSpaces.sublist(start, end);
-
     return Scaffold(
       body: Row(
         children: [
@@ -73,52 +41,79 @@ class _ParkingSpaceState extends State<ParkingSpacePage> {
             ownerName: widget.ownerName,
           ),
           Expanded(
-            child:
-                isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: currentData.length,
-                            itemBuilder: (context, index) {
-                              final space = currentData[index];
-                              return Card(
-                                margin: EdgeInsets.all(10),
-                                child: ListTile(
-                                  title: Text('ID: ${space["id"]}'),
-                                  subtitle: Text('Adress: ${space["address"]}'),
-                                  trailing: Text('${space["pricePerHour"]} kr'),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.arrow_back),
-                                onPressed:
-                                    currentPage > 0
-                                        ? () => setState(() => currentPage--)
-                                        : null,
+            child: BlocProvider(
+              create:
+                  (context) =>
+                      ParkingPlaceBloc(Parkingspacerepository())
+                        ..add(LoadParkingSpacesEvent()),
+              child: BlocBuilder<ParkingPlaceBloc, ParkingSpaceState>(
+                builder: (context, state) {
+                  if (state.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (state.errorMessage.isNotEmpty) {
+                    return Center(child: Text(state.errorMessage));
+                  }
+
+                  final int totalPages =
+                      (state.spaces.length / _rowsPerPage).ceil();
+                  final start = _currentParkingPage * _rowsPerPage;
+                  final end =
+                      (start + _rowsPerPage > state.spaces.length)
+                          ? state.spaces.length
+                          : start + _rowsPerPage;
+
+                  final currentPageData = state.spaces.sublist(start, end);
+
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: currentPageData.length,
+                          itemBuilder: (context, index) {
+                            final space = currentPageData[index];
+                            return Card(
+                              margin: const EdgeInsets.all(10),
+                              child: ListTile(
+                                title: Text('ID: ${space["id"]}'),
+                                subtitle: Text('Adress: ${space["address"]}'),
+                                trailing: Text('${space["pricePerHour"]} kr'),
                               ),
-                              Text('Sida ${currentPage + 1} av $totalPages'),
-                              IconButton(
-                                icon: Icon(Icons.arrow_forward),
-                                onPressed:
-                                    currentPage < totalPages - 1
-                                        ? () => setState(() => currentPage++)
-                                        : null,
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      ],
-                    ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed:
+                                  _currentParkingPage > 0
+                                      ? _goToPreviousPage
+                                      : null,
+                            ),
+                            Text(
+                              'Sida ${_currentParkingPage + 1} av $totalPages',
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.arrow_forward),
+                              onPressed:
+                                  _currentParkingPage < totalPages - 1
+                                      ? _goToNextPage
+                                      : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),

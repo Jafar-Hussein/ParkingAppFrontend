@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+import './bloc/authentication/auth_bloc.dart';
+import './bloc/authentication/auth_event.dart';
+import './bloc/authentication/auth_state.dart';
+import './repository/AuthRepository.dart';
 
 import 'MapScreen.dart';
 import './pages/ParkingPage.dart';
@@ -9,7 +15,12 @@ import './pages/ParkingSpacePage.dart';
 import './pages/VehiclePage.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    BlocProvider(
+      create: (context) => AuthBloc(AuthRepository()),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -36,7 +47,6 @@ class _MyAppState extends State<MyApp> {
         primary: Colors.blueGrey[800],
         secondary: Colors.tealAccent[700],
         surface: Colors.grey[850],
-        background: Colors.grey[800],
         onSurface: Colors.white,
         onPrimary: Colors.white,
         onSecondary: Colors.black,
@@ -90,11 +100,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool isLoggedIn = false;
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
   String? loggedInUser;
   int? loggedInUserId;
+
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   void _showLoginDialog({required bool isRegister}) {
     showDialog(
@@ -125,62 +135,15 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () async {
-                if (_usernameController.text.isNotEmpty &&
-                    _passwordController.text.isNotEmpty) {
+              onPressed: () {
+                final namn = _usernameController.text;
+                final pnr = _passwordController.text;
+
+                if (namn.isNotEmpty && pnr.isNotEmpty) {
                   if (isRegister) {
-                    final createRes = await http.post(
-                      Uri.parse('http://10.0.2.2:8081/persons'),
-                      headers: {'Content-Type': 'application/json'},
-                      body: jsonEncode({
-                        'namn': _usernameController.text,
-                        'personnummer': _passwordController.text,
-                      }),
-                    );
-
-                    if (createRes.statusCode == 200) {
-                      final person = jsonDecode(createRes.body);
-                      setState(() {
-                        isLoggedIn = true;
-                        loggedInUser = person['namn'];
-                        loggedInUserId = person['id'];
-                      });
-                      Navigator.of(context).pop();
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Registrering misslyckades."),
-                        ),
-                      );
-                    }
+                    context.read<AuthBloc>().add(RegisterEvent(namn, pnr));
                   } else {
-                    final res = await http.get(
-                      Uri.parse(
-                        'http://10.0.2.2:8081/persons/namn/${_usernameController.text}',
-                      ),
-                    );
-
-                    if (res.statusCode == 200) {
-                      final person = jsonDecode(res.body);
-                      if (person['personnummer'] == _passwordController.text) {
-                        setState(() {
-                          isLoggedIn = true;
-                          loggedInUser = person['namn'];
-                          loggedInUserId = person['id'];
-                        });
-                        Navigator.of(context).pop();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Fel personnummer.")),
-                        );
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Användare hittades inte."),
-                        ),
-                      );
-                    }
+                    context.read<AuthBloc>().add(LoginEvent(namn, pnr));
                   }
                 }
               },
@@ -231,73 +194,97 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(children: [Expanded(flex: 1, child: MapScreen())]),
-      bottomNavigationBar: BottomAppBar(
-        color: Theme.of(context).primaryColor,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            IconButton(
-              icon: const Icon(FontAwesomeIcons.parking, color: Colors.white),
-              onPressed: () => navigateToPage('Parking'),
-            ),
-            IconButton(
-              icon: const Icon(FontAwesomeIcons.car, color: Colors.white),
-              onPressed: () => navigateToPage('Vehicle'),
-            ),
-            IconButton(
-              icon: const Icon(
-                FontAwesomeIcons.mapMarkerAlt,
-                color: Colors.white,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthenticatedState) {
+          setState(() {
+            isLoggedIn = true;
+            loggedInUser = state.person['namn'];
+            loggedInUserId = state.person['id'];
+          });
+          Navigator.of(context).pop();
+        } else if (state is AuthErrorState) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      child: Scaffold(
+        body: Column(children: [Expanded(flex: 1, child: MapScreen())]),
+        bottomNavigationBar: BottomAppBar(
+          color: Theme.of(context).primaryColor,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(FontAwesomeIcons.parking, color: Colors.white),
+                onPressed: () => navigateToPage('Parking'),
               ),
-              onPressed: () => navigateToPage('ParkingSpace'),
-            ),
-            PopupMenuButton<String>(
-              icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
-              offset:
-                  isLoggedIn ? const Offset(80, -120) : const Offset(50, -110),
-              onSelected: (String result) {
-                switch (result) {
-                  case 'Login':
-                    _showLoginDialog(isRegister: false);
-                    break;
-                  case 'Register':
-                    _showLoginDialog(isRegister: true);
-                    break;
-                  case 'Logout':
-                    setState(() => isLoggedIn = false);
-                    break;
-                  case 'isDarkMode':
-                    widget.toggleTheme(!widget.isDarkMode);
-                    break;
-                }
-              },
-              itemBuilder:
-                  (BuildContext context) => <PopupMenuEntry<String>>[
-                    if (!isLoggedIn) ...[
-                      const PopupMenuItem<String>(
-                        value: 'Login',
-                        child: Text('Logga in'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'Register',
-                        child: Text('Registrera'),
-                      ),
+              IconButton(
+                icon: const Icon(FontAwesomeIcons.car, color: Colors.white),
+                onPressed: () => navigateToPage('Vehicle'),
+              ),
+              IconButton(
+                icon: const Icon(
+                  FontAwesomeIcons.mapMarkerAlt,
+                  color: Colors.white,
+                ),
+                onPressed: () => navigateToPage('ParkingSpace'),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(FontAwesomeIcons.user, color: Colors.white),
+                offset:
+                    isLoggedIn
+                        ? const Offset(80, -120)
+                        : const Offset(50, -110),
+                onSelected: (String result) {
+                  switch (result) {
+                    case 'Login':
+                      _showLoginDialog(isRegister: false);
+                      break;
+                    case 'Register':
+                      _showLoginDialog(isRegister: true);
+                      break;
+                    case 'Logout':
+                      setState(() {
+                        isLoggedIn = false;
+                        loggedInUser = null;
+                        loggedInUserId = null;
+                        _usernameController.clear();
+                        _passwordController.clear();
+                      });
+                      break;
+                    case 'isDarkMode':
+                      widget.toggleTheme(!widget.isDarkMode);
+                      break;
+                  }
+                },
+                itemBuilder:
+                    (BuildContext context) => <PopupMenuEntry<String>>[
+                      if (!isLoggedIn) ...[
+                        const PopupMenuItem<String>(
+                          value: 'Login',
+                          child: Text('Logga in'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'Register',
+                          child: Text('Registrera'),
+                        ),
+                      ],
+                      if (isLoggedIn) ...[
+                        const PopupMenuItem<String>(
+                          value: 'isDarkMode',
+                          child: Text('Byt tema'),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'Logout',
+                          child: Text('Logga ut'),
+                        ),
+                      ],
                     ],
-                    if (isLoggedIn) ...[
-                      const PopupMenuItem<String>(
-                        value: 'isDarkMode',
-                        child: Text('Byt tema'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'Logout',
-                        child: Text('Logga ut'),
-                      ),
-                    ],
-                  ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

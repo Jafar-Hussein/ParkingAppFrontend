@@ -10,12 +10,12 @@ class CustomNavigationRail extends StatefulWidget {
   final String ownerName; // <-- Lägg till
 
   const CustomNavigationRail({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.toggleTheme,
     required this.isDarkMode,
     required this.ownerName, // <-- Lägg till
-  }) : super(key: key);
+  });
 
   @override
   _CustomNavigationRailState createState() => _CustomNavigationRailState();

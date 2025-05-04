@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/vehicle/vehicle_bloc.dart';
+import '../bloc/vehicle/vehicle_state.dart';
+import '../bloc/vehicle/vehicle_event.dart';
 import '../navigation/Nav.dart';
-import '../model/VehicleModel.dart';
+import '../repository/vehicleRepository.dart';
 
 class VehiclePage extends StatefulWidget {
   final bool isDarkMode;
@@ -11,74 +12,150 @@ class VehiclePage extends StatefulWidget {
   final String ownerName;
 
   const VehiclePage({
-    Key? key,
+    super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-  }) : super(key: key);
+  });
 
   @override
   _VehiclePageState createState() => _VehiclePageState();
 }
 
-// ... import statements
-
 class _VehiclePageState extends State<VehiclePage> {
-  final int rowsPerPage = 5;
-  int currentPage = 0;
-  bool isLoading = true;
-  List<VehicleModel> allVehicles = [];
-  Map<String, dynamic>? owner;
-
-  String get apiUrl =>
-      'http://10.0.2.2:8081/vehicles/owner/${widget.ownerName}';
+  int _currentPage = 0;
+  final int _rowsPerPage = 5;
+  late VehicleBloc _vehicleBloc;
 
   @override
   void initState() {
     super.initState();
-    fetchOwnerAndVehicles();
+    _vehicleBloc = VehicleBloc(VehicleRepository());
+    _vehicleBloc.add(LoadVehiclesEvent(widget.ownerName));
   }
 
-  Future<void> fetchOwnerAndVehicles() async {
-    setState(() => isLoading = true);
-    try {
-      final ownerRes = await http.get(
-        Uri.parse('http://10.0.2.2:8081/persons/namn/${widget.ownerName}'),
-      );
+  void _goToNextPage() {
+    setState(() {
+      _currentPage++;
+    });
+  }
 
-      if (ownerRes.statusCode == 200) {
-        owner = jsonDecode(ownerRes.body);
-      } else {
-        throw Exception("Kunde inte hämta ägarinformation");
-      }
+  void _goToPreviousPage() {
+    setState(() {
+      _currentPage--;
+    });
+  }
 
-      final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        final filtered =
-            data
-                .where(
-                  (item) =>
-                      item['owner'] != null &&
-                      item['owner']['namn'] == widget.ownerName,
-                )
-                .toList();
-
-        setState(() {
-          allVehicles =
-              filtered.map((item) => VehicleModel.fromJson(item)).toList();
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) {
+        final bloc = VehicleBloc(VehicleRepository());
+        // Vänta till efter första build innan vi triggar hämta fordon
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          bloc.add(LoadVehiclesEvent(widget.ownerName));
         });
-      } else {
-        print('Fel vid hämtning av fordon: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Fetch error: $e');
-    } finally {
-      setState(() => isLoading = false);
-    }
+        return bloc;
+      },
+      child: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            _addVehicleDialog(context);
+          },
+          tooltip: "Lägg till fordon",
+          child: Icon(Icons.add),
+        ),
+        body: Row(
+          children: [
+            CustomNavigationRail(
+              selectedIndex: 1,
+              toggleTheme: widget.toggleTheme,
+              isDarkMode: widget.isDarkMode,
+              ownerName: widget.ownerName,
+            ),
+            Expanded(
+              child: BlocBuilder<VehicleBloc, VehicleState>(
+                builder: (context, state) {
+                  if (state is VehicleLoadingState) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (state is VehicleErrorState) {
+                    return Center(child: Text(state.errorMessage));
+                  }
+
+                  final int totalPages =
+                      (state.vehicles.length / _rowsPerPage).ceil();
+                  final startIndex = _currentPage * _rowsPerPage;
+                  final endIndex =
+                      (startIndex + _rowsPerPage > state.vehicles.length)
+                          ? state.vehicles.length
+                          : startIndex + _rowsPerPage;
+
+                  final currentPageData = state.vehicles.sublist(
+                    startIndex,
+                    endIndex,
+                  );
+
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: currentPageData.length,
+                          itemBuilder: (context, index) {
+                            final vehicle = currentPageData[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                                horizontal: 10.0,
+                              ),
+                              child: ListTile(
+                                title: Text(vehicle.typ),
+                                subtitle: Text(
+                                  "RegNr: ${vehicle.registreringsnummer}",
+                                ),
+                                trailing: IconButton(
+                                  icon: Icon(Icons.delete, color: Colors.red),
+                                  onPressed:
+                                      () => _deleteVehicle(context, vehicle.id),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back),
+                              onPressed:
+                                  _currentPage > 0 ? _goToPreviousPage : null,
+                            ),
+                            Text('Sida ${_currentPage + 1} av $totalPages'),
+                            IconButton(
+                              icon: const Icon(Icons.arrow_forward),
+                              onPressed:
+                                  _currentPage < totalPages - 1
+                                      ? _goToNextPage
+                                      : null,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Future<void> addVehicleDialog() async {
+  Future<void> _addVehicleDialog(BuildContext context) async {
     final TextEditingController regController = TextEditingController();
     final TextEditingController typController = TextEditingController();
     final FocusNode regFocus = FocusNode();
@@ -110,20 +187,14 @@ class _VehiclePageState extends State<VehiclePage> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                if (owner == null) return;
 
                 final newVehicle = {
                   "registreringsnummer": regController.text,
                   "typ": typController.text,
-                  "owner": owner,
+                  "owner": {"namn": widget.ownerName},
                 };
 
-                await http.post(
-                  Uri.parse('http://10.0.2.2:8081/vehicles'),
-                  headers: {'Content-Type': 'application/json'},
-                  body: jsonEncode(newVehicle),
-                );
-                fetchOwnerAndVehicles();
+                context.read<VehicleBloc>().add(AddVehicleEvent(newVehicle));
               },
               child: Text('Spara'),
             ),
@@ -137,96 +208,9 @@ class _VehiclePageState extends State<VehiclePage> {
     );
   }
 
-  Future<void> deleteVehicle(int id) async {
-    await http.delete(Uri.parse('http://10.0.2.2:8081/vehicles/$id'));
-    fetchOwnerAndVehicles();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    int totalPages = (allVehicles.length / rowsPerPage).ceil();
-    int startIndex = currentPage * rowsPerPage;
-    int endIndex =
-        (currentPage + 1) * rowsPerPage > allVehicles.length
-            ? allVehicles.length
-            : (currentPage + 1) * rowsPerPage;
-    List<VehicleModel> currentVehicles = allVehicles.sublist(
-      startIndex,
-      endIndex,
-    );
-
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: addVehicleDialog,
-        child: Icon(Icons.add),
-        tooltip: "Lägg till fordon",
-      ),
-      body: Row(
-        children: [
-          CustomNavigationRail(
-            selectedIndex: 1,
-            toggleTheme: widget.toggleTheme,
-            isDarkMode: widget.isDarkMode,
-            ownerName: widget.ownerName,
-          ),
-          Expanded(
-            child:
-                isLoading
-                    ? Center(child: CircularProgressIndicator())
-                    : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            itemCount: currentVehicles.length,
-                            itemBuilder: (context, index) {
-                              final vehicle = currentVehicles[index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                  horizontal: 10.0,
-                                ),
-                                child: ListTile(
-                                  title: Text(vehicle.typ),
-                                  subtitle: Text(
-                                    "RegNr: ${vehicle.registreringsnummer}",
-                                  ),
-                                  trailing: IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => deleteVehicle(vehicle.id),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.arrow_back),
-                                onPressed:
-                                    currentPage > 0
-                                        ? () => setState(() => currentPage--)
-                                        : null,
-                              ),
-                              Text('Sida ${currentPage + 1} av $totalPages'),
-                              IconButton(
-                                icon: Icon(Icons.arrow_forward),
-                                onPressed:
-                                    currentPage < totalPages - 1
-                                        ? () => setState(() => currentPage++)
-                                        : null,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-          ),
-        ],
-      ),
+  Future<void> _deleteVehicle(BuildContext context, int vehicleId) async {
+    context.read<VehicleBloc>().add(
+      DeleteVehicleEvent(vehicleId, widget.ownerName),
     );
   }
 }
