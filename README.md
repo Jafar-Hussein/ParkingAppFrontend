@@ -38,6 +38,31 @@ Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [Pa
   - Fordonslistor
 - 📍 Karta (via `flutter_map`) på startsidan
 
+## BLoC (Business Logic Component) – Arkitektur & Tester
+
+Projektet är uppdelat i **BLoC-moduler** för varje funktionalitet:
+
+### Struktur:
+- **BLoC-filer** hanterar logiken (t.ex. `AuthBloc`, `ParkingBloc`, `VehicleBloc`, `ParkingPlaceBloc`)
+- **Events** triggar logiken (ex: `LoginEvent`, `AddVehicleEvent`)
+- **States** representerar appens aktuella tillstånd (ex: `AuthenticatedState`, `ParkingPlaceLoadedState`)
+
+### Fördelar med BLoC:
+- Separering av UI och logik (clean architecture)
+- Enkel testning (med `bloc_test` och `mocktail`)
+- Enkel felsökning: varje tillstånd är tydligt
+
+### Nackdelar:
+- Mycket boilerplate-kod (events, states, BLoC)
+- Kan kännas överkomplicerat för små appar
+
+### Tester:
+- Varje BLoC har enhetstester som kontrollerar:
+  - Rätt tillstånd efter lyckade/felaktiga anrop
+  - Användning av mockade repository-klasser
+- Användning av `bloc_test` och `mocktail`
+
+---
 ## ⚠️ Kända begränsningar
 
 - Det finns ingen validering av formulärinmatning (t.ex. tomma fält vid registrering)
