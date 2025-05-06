@@ -28,17 +28,24 @@ class VehicleBloc extends Bloc<vehEvent.VehicleEvent, state.VehicleState> {
   }
 
   Future<void> _onAddVehicle(
-    vehEvent.AddVehicleEvent event,
-    Emitter<state.VehicleState> emit,
+    AddVehicleEvent event,
+    Emitter<VehicleState> emit,
   ) async {
     try {
+      print("🟢 addVehicle skickas: ${event.vehicle}");
+
       await vehicleRepository.addVehicle(event.vehicle);
+
       final vehicles = await vehicleRepository.getVehicles(
         event.vehicle['owner']['namn'],
       );
-      emit(state.VehicleLoadedState(vehicles));
+
+      print("🟢 Hämtade fordon: $vehicles");
+
+      emit(VehicleLoadedState(vehicles));
     } catch (e) {
-      emit(state.VehicleErrorState(e.toString()));
+      print("🔴 Fel vid lägg till fordon: $e");
+      emit(VehicleErrorState(e.toString()));
     }
   }
 

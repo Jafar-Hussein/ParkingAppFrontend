@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application/bloc/vehicle/vehicle_event.dart';
 import '../pages/ParkingPage.dart';
 import '../pages/ParkingSpacePage.dart';
 import '../pages/VehiclePage.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/vehicle/vehicle_bloc.dart';
+import '../repository/vehicleRepository.dart';
 
 class CustomNavigationRail extends StatefulWidget {
   final int selectedIndex;
   final Function(bool) toggleTheme;
   final bool isDarkMode;
-  final String ownerName; // <-- Lägg till
+  final String ownerName;
+  final int ownerId;
 
   const CustomNavigationRail({
     super.key,
     required this.selectedIndex,
     required this.toggleTheme,
     required this.isDarkMode,
-    required this.ownerName, // <-- Lägg till
+    required this.ownerName,
+    required this.ownerId,
   });
 
   @override
@@ -44,7 +50,8 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                 (_) => ParkingPage(
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
-                  ownerName: widget.ownerName, // <-- Dynamiskt
+                  ownerName: widget.ownerName,
+                  ownerId: widget.ownerId,
                 ),
           ),
         );
@@ -54,10 +61,17 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
           context,
           MaterialPageRoute(
             builder:
-                (_) => VehiclePage(
-                  isDarkMode: widget.isDarkMode,
-                  toggleTheme: widget.toggleTheme,
-                  ownerName: widget.ownerName, // <-- Dynamiskt
+                (_) => BlocProvider(
+                  create:
+                      (_) =>
+                          VehicleBloc(VehicleRepository())
+                            ..add(LoadVehiclesEvent(widget.ownerName)),
+                  child: VehiclePage(
+                    isDarkMode: widget.isDarkMode,
+                    toggleTheme: widget.toggleTheme,
+                    ownerName: widget.ownerName,
+                    ownerId: widget.ownerId,
+                  ),
                 ),
           ),
         );
@@ -71,6 +85,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
                   ownerName: widget.ownerName,
+                  ownerId: widget.ownerId,
                 ),
           ),
         );

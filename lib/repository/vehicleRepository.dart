@@ -27,11 +27,15 @@ class VehicleRepository {
 
   // Add a vehicle
   Future<void> addVehicle(Map<String, dynamic> vehicle) async {
+    print("Skickar fordon till backend: $vehicle"); // 🧪 Lägg till denna
+
     final response = await http.post(
       Uri.parse('$apiBase/vehicles'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode(vehicle),
     );
+
+    print("Svarskod: ${response.statusCode}"); // 🧪
 
     if (response.statusCode != 200) {
       throw Exception('Failed to add vehicle');

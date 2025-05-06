@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application/bloc/vehicle/vehicle_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:convert';
@@ -8,6 +9,8 @@ import './bloc/authentication/auth_bloc.dart';
 import './bloc/authentication/auth_event.dart';
 import './bloc/authentication/auth_state.dart';
 import './repository/AuthRepository.dart';
+import './bloc/vehicle/vehicle_bloc.dart';
+import './repository/vehicleRepository.dart';
 
 import 'MapScreen.dart';
 import './pages/ParkingPage.dart';
@@ -169,6 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
+          ownerId: loggedInUserId!,
         );
         break;
       case 'Vehicle':
@@ -176,13 +180,16 @@ class _MyHomePageState extends State<MyHomePage> {
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
+          ownerId: loggedInUserId!, // 🟢 Lägg till denna rad
         );
         break;
+
       case 'ParkingSpace':
         nextPage = ParkingSpacePage(
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
+          ownerId: loggedInUserId!,
         );
         break;
       default:

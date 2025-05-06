@@ -10,12 +10,14 @@ class ParkingSpacePage extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
+  final int ownerId;
 
   const ParkingSpacePage({
     super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
+    required this.ownerId,
   });
 
   @override
@@ -39,6 +41,7 @@ class _ParkingSpacePageState extends State<ParkingSpacePage> {
             toggleTheme: widget.toggleTheme,
             isDarkMode: widget.isDarkMode,
             ownerName: widget.ownerName,
+            ownerId: widget.ownerId,
           ),
           Expanded(
             child: BlocProvider(
