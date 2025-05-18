@@ -1,40 +1,48 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Parkingspacerepository {
-  final String apiBase = 'http://10.0.2.2:8081';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String collection = 'parkingspace';
 
-  /// Hämta alla parkeringsplatser
   Future<List<Map<String, dynamic>>> getAll() async {
-    final response = await http.get(Uri.parse('$apiBase/parkingspaces'));
+    final snapshot = await _firestore.collection(collection).get();
 
-    if (response.statusCode == 200) {
-      final List<dynamic> jsonData = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(jsonData);
-    } else {
-      throw Exception('Kunde inte hämta parkeringsplatser');
-    }
+    return snapshot.docs
+        .map(
+          (doc) =>
+              {
+                    ...doc.data(),
+                    'firebaseId':
+                        doc.id, // Valfritt: inkludera dokumentets Firestore-ID
+                  }
+                  as Map<String, dynamic>,
+        )
+        .toList();
   }
 
-  /// Lägg till en parkeringsplats
   Future<void> add(Map<String, dynamic> parkingSpace) async {
-    final response = await http.post(
-      Uri.parse('$apiBase/parkingspaces'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(parkingSpace),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Kunde inte lägga till parkeringsplats');
+    try {
+      if (parkingSpace.isNotEmpty) {
+        await _firestore.collection(collection).add(parkingSpace);
+      } else {
+        print('parkingSpace är tom');
+      }
+    } catch (e) {
+      print('Fel vid add(): $e');
+      rethrow;
     }
   }
 
-  /// Radera en parkeringsplats
-  Future<void> delete(int id) async {
-    final response = await http.delete(Uri.parse('$apiBase/parkingspaces/$id'));
-
-    if (response.statusCode != 200) {
-      throw Exception('Kunde inte radera parkeringsplats');
+  Future<void> delete(String id) async {
+    try {
+      await _firestore.collection(collection).doc(id).delete();
+    } catch (e) {
+      print('Fel vid delete(): $e');
+      rethrow;
     }
   }
 }

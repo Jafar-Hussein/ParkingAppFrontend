@@ -12,7 +12,7 @@ class CustomNavigationRail extends StatefulWidget {
   final Function(bool) toggleTheme;
   final bool isDarkMode;
   final String ownerName;
-  final int ownerId;
+  final String ownerUid;
 
   const CustomNavigationRail({
     super.key,
@@ -20,7 +20,7 @@ class CustomNavigationRail extends StatefulWidget {
     required this.toggleTheme,
     required this.isDarkMode,
     required this.ownerName,
-    required this.ownerId,
+    required this.ownerUid,
   });
 
   @override
@@ -51,7 +51,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
                   ownerName: widget.ownerName,
-                  ownerId: widget.ownerId,
+                  ownerUid: widget.ownerUid,
                 ),
           ),
         );
@@ -65,12 +65,12 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   create:
                       (_) =>
                           VehicleBloc(VehicleRepository())
-                            ..add(LoadVehiclesEvent(widget.ownerName)),
+                            ..add(LoadVehiclesEvent(widget.ownerUid)),
                   child: VehiclePage(
                     isDarkMode: widget.isDarkMode,
                     toggleTheme: widget.toggleTheme,
                     ownerName: widget.ownerName,
-                    ownerId: widget.ownerId,
+                    ownerUid: widget.ownerUid,
                   ),
                 ),
           ),
@@ -85,7 +85,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   isDarkMode: widget.isDarkMode,
                   toggleTheme: widget.toggleTheme,
                   ownerName: widget.ownerName,
-                  ownerId: widget.ownerId,
+                  ownerUid: widget.ownerUid,
                 ),
           ),
         );

@@ -10,14 +10,14 @@ class ParkingPage extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
-  final int ownerId;
+  final String ownerUid;
 
   const ParkingPage({
     super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-    required this.ownerId,
+    required this.ownerUid,
   });
 
   @override
@@ -38,9 +38,9 @@ class _ParkingPageState extends State<ParkingPage> {
   Widget build(BuildContext context) {
     return BlocProvider<ParkingBloc>(
       create: (context) {
-        final bloc = ParkingBloc(ParkingRepository()); // ✅ Skicka in dependency
+        final bloc = ParkingBloc(ParkingRepository());
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          bloc.add(LoadParkingDataEvent(widget.ownerName));
+          bloc.add(LoadParkingDataEvent(widget.ownerUid));
         });
         return bloc;
       },
@@ -52,7 +52,7 @@ class _ParkingPageState extends State<ParkingPage> {
               toggleTheme: widget.toggleTheme,
               isDarkMode: widget.isDarkMode,
               ownerName: widget.ownerName,
-              ownerId: widget.ownerId,
+              ownerUid: widget.ownerUid,
             ),
             Expanded(
               child: BlocBuilder<ParkingBloc, ParkingState>(
@@ -101,13 +101,15 @@ class _ParkingPageState extends State<ParkingPage> {
                               subtitle: Text(
                                 "Pris per timme: ${space['pricePerHour']} kr",
                               ),
-                              trailing: PopupMenuButton<Map>(
+                              trailing: PopupMenuButton<Map<String, dynamic>>(
                                 icon: const Icon(Icons.directions_car),
                                 itemBuilder:
                                     (_) =>
                                         state.vehicles
                                             .map(
-                                              (v) => PopupMenuItem<Map>(
+                                              (v) => PopupMenuItem<
+                                                Map<String, dynamic>
+                                              >(
                                                 value: v,
                                                 child: Text(
                                                   v['registreringsnummer'],
@@ -115,12 +117,12 @@ class _ParkingPageState extends State<ParkingPage> {
                                               ),
                                             )
                                             .toList(),
-                                onSelected: (selected) {
+                                onSelected: (Map<String, dynamic> selected) {
                                   context.read<ParkingBloc>().add(
                                     StartParkingEvent(
-                                      space['id'],
+                                      space['id'].toString(),
                                       selected,
-                                      widget.ownerName,
+                                      widget.ownerUid,
                                     ),
                                   );
                                 },
@@ -175,7 +177,8 @@ class _ParkingPageState extends State<ParkingPage> {
                                         StopParkingEvent(
                                           entry['id'],
                                           entry,
-                                          widget.ownerName,
+                                          widget.ownerUid,
+                                          entry['vehicle']['id'], // <- lägg till rätt ID här
                                         ),
                                       );
                                     },

@@ -1,166 +1,115 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:flutter_application/bloc/vehicle/vehicle_bloc.dart';
-import 'package:flutter_application/bloc/vehicle/vehicle_event.dart';
-import 'package:flutter_application/bloc/vehicle/vehicle_state.dart';
-import 'package:flutter_application/repository/vehicleRepository.dart';
-import 'package:flutter_application/model/VehicleModel.dart';
+import 'package:flutter_application/bloc/parking/parking_bloc.dart';
+import 'package:flutter_application/bloc/parking/parking_event.dart';
+import 'package:flutter_application/bloc/parking/parking_state.dart';
+import 'package:flutter_application/repository/parkingRepository.dart';
 
-import '../repository/mock_vehicle_repository.dart';
+import '../repository/mock_parking_repository.dart';
 
 void main() {
-  late VehicleBloc bloc;
-  late MockVehicleRepository mockRepo;
+  late ParkingBloc bloc;
+  late MockParkingRepository mockRepo;
 
   setUp(() {
-    mockRepo = MockVehicleRepository();
-    bloc = VehicleBloc(mockRepo);
+    mockRepo = MockParkingRepository();
+    bloc = ParkingBloc(mockRepo);
   });
 
   tearDown(() => bloc.close());
 
-  group('VehicleBloc', () {
-    blocTest<VehicleBloc, VehicleState>(
-      'emits [VehicleLoadingState, VehicleLoadedState] on LoadVehiclesEvent',
-      build: () {
-        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async {
-          print('getVehicles called with ownerName = "test" → returns []');
-          return [];
-        });
-        return bloc;
-      },
-      act: (bloc) {
-        print('Sending event: LoadVehiclesEvent("test")');
-        bloc.add(LoadVehiclesEvent('test'));
-      },
-      expect: () {
-        print('Expecting: VehicleLoadingState, VehicleLoadedState([])');
-        return [
-          isA<VehicleLoadingState>(),
-          isA<VehicleLoadedState>().having((s) => s.vehicles, 'vehicles', []),
-        ];
-      },
-    );
-
-    blocTest<VehicleBloc, VehicleState>(
-      'emits VehicleErrorState when LoadVehiclesEvent fails',
-      build: () {
-        when(() => mockRepo.getVehicles(any())).thenThrow(Exception('Failed'));
-        return bloc;
-      },
-      act: (bloc) {
-        print('Sending event: LoadVehiclesEvent("test") with failure');
-        bloc.add(LoadVehiclesEvent('test'));
-      },
-      expect: () {
-        print('Expecting: VehicleLoadingState, VehicleErrorState("Failed")');
-        return [
-          isA<VehicleLoadingState>(),
-          isA<VehicleErrorState>().having(
-            (s) => s.errorMessage,
-            'errorMessage',
-            contains('Failed'),
-          ),
-        ];
-      },
-    );
-
-    blocTest<VehicleBloc, VehicleState>(
-      'emits VehicleLoadedState after successful AddVehicleEvent',
-      build: () {
-        when(() => mockRepo.addVehicle(any())).thenAnswer((_) async {
-          print('addVehicle called');
-        });
-
-        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async {
-          print('getVehicles called after add → returns 1 vehicle');
-          return [
-            VehicleModel(
-              id: 1,
-              registreringsnummer: 'ABC123',
-              typ: 'Car',
-              owner: 'Alex',
-            ),
-          ];
-        });
-
-        return bloc;
-      },
-      act: (bloc) {
-        print('Sending event: AddVehicleEvent');
-        bloc.add(
-          AddVehicleEvent({
-            'id': 1,
-            'registreringsnummer': 'ABC123',
-            'typ': 'Car',
-            'owner': {'namn': 'Alex'},
-          }),
-        );
-      },
-      expect: () {
-        print('Expecting: VehicleLoadedState with 1 vehicle');
-        return [
-          isA<VehicleLoadedState>().having(
-            (s) => s.vehicles.length,
-            'vehicles.length',
-            1,
-          ),
-        ];
-      },
-    );
-    blocTest<VehicleBloc, VehicleState>(
-      'emits VehicleLoadedState after successful DeleteVehicleEvent',
-      build: () {
-        when(() => mockRepo.deleteVehicle(any())).thenAnswer((_) async {
-          print('deleteVehicle called with id 1');
-        });
-        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async {
-          print('getVehicles called after delete → returns []');
-          return [];
-        });
-        return bloc;
-      },
-      act: (bloc) {
-        print('Sending event: DeleteVehicleEvent');
-        bloc.add(DeleteVehicleEvent(1, 'Alex'));
-      },
-      expect: () {
-        print('Expecting: VehicleLoadedState with empty list');
-        return [
-          isA<VehicleLoadedState>().having((s) => s.vehicles, 'vehicles', []),
-        ];
-      },
-    );
-
-    blocTest<VehicleBloc, VehicleState>(
-      'emits VehicleErrorState when AddVehicleEvent fails',
+  group('ParkingBloc', () {
+    blocTest<ParkingBloc, ParkingState>(
+      'LoadParkingDataEvent success → emits [loading, loaded]',
       build: () {
         when(
-          () => mockRepo.addVehicle(any()),
-        ).thenThrow(Exception('Add failed'));
+          () => mockRepo.getParkingHistory(any()),
+        ).thenAnswer((_) async => []);
+        when(() => mockRepo.getAvailableSpaces()).thenAnswer((_) async => []);
+        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async => []);
+        return bloc;
+      },
+      act: (bloc) => bloc.add(LoadParkingDataEvent('uid123')),
+      expect:
+          () => [
+            isA<ParkingState>().having((s) => s.isLoading, 'isLoading', true),
+            isA<ParkingState>()
+                .having((s) => s.isLoading, 'isLoading', false)
+                .having((s) => s.parkingHistory, 'parkingHistory', [])
+                .having((s) => s.availableSpaces, 'availableSpaces', [])
+                .having((s) => s.vehicles, 'vehicles', []),
+          ],
+    );
+
+    blocTest<ParkingBloc, ParkingState>(
+      'LoadParkingDataEvent failure → emits error state',
+      build: () {
+        when(
+          () => mockRepo.getParkingHistory(any()),
+        ).thenThrow(Exception('Failed'));
+        when(() => mockRepo.getAvailableSpaces()).thenAnswer((_) async => []);
+        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async => []);
+        return bloc;
+      },
+      act: (bloc) => bloc.add(LoadParkingDataEvent('uid123')),
+      expect:
+          () => [
+            isA<ParkingState>().having((s) => s.isLoading, 'isLoading', true),
+            isA<ParkingState>()
+                .having((s) => s.isLoading, 'isLoading', false)
+                .having(
+                  (s) => s.errorMessage,
+                  'errorMessage',
+                  contains('Failed'),
+                ),
+          ],
+    );
+
+    blocTest<ParkingBloc, ParkingState>(
+      'StartParkingEvent failure → emits error state',
+      build: () {
+        when(
+          () => mockRepo.startParking(any(), any(), any()),
+        ).thenThrow(Exception('Start failed'));
         return bloc;
       },
       act: (bloc) {
-        print('Sending event: AddVehicleEvent (with error)');
         bloc.add(
-          AddVehicleEvent({
-            'id': 1,
-            'model': 'Car',
-            'owner': {'namn': 'Alex'},
-          }),
+          StartParkingEvent('spaceId1', {'vehicle': 'ABC123'}, 'uid123'),
         );
       },
-      expect: () {
-        print('Expecting: VehicleErrorState("Add failed")');
-        return [
-          isA<VehicleErrorState>().having(
-            (s) => s.errorMessage,
-            'errorMessage',
-            contains('Add failed'),
-          ),
-        ];
+      expect:
+          () => [
+            isA<ParkingState>().having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              contains('Start failed'),
+            ),
+          ],
+    );
+
+    blocTest<ParkingBloc, ParkingState>(
+      'StopParkingEvent failure → emits error state',
+      build: () {
+        when(
+          () => mockRepo.stopParking(any(), any()),
+        ).thenThrow(Exception('Stop failed'));
+        return bloc;
       },
+      act: (bloc) {
+        bloc.add(
+          StopParkingEvent("123123124", {'parking': 'data'}, 'uid123', 'Alex'),
+        );
+      },
+      expect:
+          () => [
+            isA<ParkingState>().having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              contains('Stop failed'),
+            ),
+          ],
     );
   });
 }

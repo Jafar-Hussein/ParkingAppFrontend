@@ -1,23 +1,23 @@
 abstract class ParkingEvent {}
 
 class LoadParkingDataEvent extends ParkingEvent {
-  final String ownerName;
-
-  LoadParkingDataEvent(this.ownerName);
+  final String ownerUid;
+  LoadParkingDataEvent(this.ownerUid);
 }
 
 class StartParkingEvent extends ParkingEvent {
-  final int spaceId;
-  final Map vehicle;
-  final String ownerName;
+  final String spaceId;
+  final Map<String, dynamic> vehicle;
+  final String ownerUid;
 
-  StartParkingEvent(this.spaceId, this.vehicle, this.ownerName);
+  StartParkingEvent(this.spaceId, this.vehicle, this.ownerUid);
 }
 
 class StopParkingEvent extends ParkingEvent {
-  final int parkingId;
-  final Map parking;
-  final String ownerName;
+  final String parkingId;
+  final Map<String, dynamic> parking;
+  final String ownerUid;
+  final String vehicleId;
 
-  StopParkingEvent(this.parkingId, this.parking, this.ownerName);
+  StopParkingEvent(this.parkingId, this.parking, this.ownerUid, this.vehicleId);
 }

@@ -1,134 +1,102 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:flutter_application/bloc/parking/parking_bloc.dart';
-import 'package:flutter_application/bloc/parking/parking_event.dart';
-import 'package:flutter_application/bloc/parking/parking_state.dart';
-import 'package:flutter_application/repository/parkingRepository.dart';
+import 'package:flutter_application/bloc/parkingplace/parking_space_bloc.dart';
+import 'package:flutter_application/bloc/parkingplace/parking_space_event.dart';
+import 'package:flutter_application/bloc/parkingplace/parking_space_state.dart';
 
-import '../repository/mock_parking_repository.dart';
-
-
+import '../repository/mock_parking_space_repository.dart';
 
 void main() {
-  late ParkingBloc bloc;
-  late MockParkingRepository mockRepo;
+  late ParkingPlaceBloc bloc;
+  late MockParkingSpaceRepository mockRepo;
 
   setUp(() {
-    mockRepo = MockParkingRepository();
-    bloc = ParkingBloc(mockRepo);
+    mockRepo = MockParkingSpaceRepository();
+    bloc = ParkingPlaceBloc(mockRepo);
   });
 
   tearDown(() => bloc.close());
 
-  group('ParkingBloc', () {
-    blocTest<ParkingBloc, ParkingState>(
-      'LoadParkingDataEvent success → emits [loading, loaded]',
+  group('ParkingPlaceBloc', () {
+    blocTest<ParkingPlaceBloc, ParkingSpaceState>(
+      'emits [Loading, Loaded] when LoadParkingSpacesEvent succeeds',
       build: () {
-        when(() => mockRepo.getParkingHistory()).thenAnswer((_) async {
-          print('getParkingHistory called → returns []');
-          return [];
-        });
-        when(() => mockRepo.getAvailableSpaces()).thenAnswer((_) async {
-          print('getAvailableSpaces called → returns []');
-          return [];
-        });
-        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async {
-          print('getVehicles("test") called → returns []');
-          return [];
-        });
+        when(() => mockRepo.getAll()).thenAnswer((_) async => []);
         return bloc;
       },
-      act: (bloc) {
-        print('Sending event: LoadParkingDataEvent("test")');
-        bloc.add(LoadParkingDataEvent('test'));
-      },
-      expect: () {
-        print('Expecting: Loading then Loaded with empty data');
-        return [
-          isA<ParkingState>().having((s) => s.isLoading, 'isLoading', true),
-          isA<ParkingState>()
-              .having((s) => s.isLoading, 'isLoading', false)
-              .having((s) => s.parkingHistory, 'parkingHistory', [])
-              .having((s) => s.availableSpaces, 'availableSpaces', [])
-              .having((s) => s.vehicles, 'vehicles', []),
-        ];
-      },
+      act: (bloc) => bloc.add(LoadParkingSpacesEvent()),
+      expect:
+          () => [
+            isA<ParkingPlaceLoadingState>(),
+            isA<ParkingPlaceLoadedState>().having(
+              (s) => s.spaces,
+              'spaces',
+              [],
+            ),
+          ],
     );
 
-    blocTest<ParkingBloc, ParkingState>(
-      'LoadParkingDataEvent failure → emits error state',
+    blocTest<ParkingPlaceBloc, ParkingSpaceState>(
+      'emits [Loading, Error] when LoadParkingSpacesEvent fails',
       build: () {
-        when(() => mockRepo.getParkingHistory()).thenThrow(Exception('Failed'));
-        when(() => mockRepo.getAvailableSpaces()).thenAnswer((_) async => []);
-        when(() => mockRepo.getVehicles(any())).thenAnswer((_) async => []);
+        when(() => mockRepo.getAll()).thenThrow(Exception('Load failed'));
         return bloc;
       },
-      act: (bloc) {
-        print('Sending event: LoadParkingDataEvent("test") (with error)');
-        bloc.add(LoadParkingDataEvent('test'));
-      },
-      expect: () {
-        print('Expecting: Loading then Error state');
-        return [
-          isA<ParkingState>().having((s) => s.isLoading, 'isLoading', true),
-          isA<ParkingState>()
-              .having((s) => s.isLoading, 'isLoading', false)
-              .having(
-                (s) => s.errorMessage,
-                'errorMessage',
-                contains('Failed'),
-              ),
-        ];
-      },
+      act: (bloc) => bloc.add(LoadParkingSpacesEvent()),
+      expect:
+          () => [
+            isA<ParkingPlaceLoadingState>(),
+            isA<ParkingPlaceErrorState>().having(
+              (s) => s.errorMessage,
+              'errorMessage',
+              contains('Load failed'),
+            ),
+          ],
     );
 
-    blocTest<ParkingBloc, ParkingState>(
-      'StartParkingEvent failure → emits error state',
+    blocTest<ParkingPlaceBloc, ParkingSpaceState>(
+      'emits [Loaded] after AddParkingSpaceEvent succeeds',
       build: () {
-        when(
-          () => mockRepo.startParking(any(), any(), any()),
-        ).thenThrow(Exception('Start failed'));
+        when(() => mockRepo.add(any())).thenAnswer((_) async => {});
+        when(() => mockRepo.getAll()).thenAnswer(
+          (_) async => [
+            {'id': '23232', 'address': 'Street 1', 'pricePerHour': 10.0},
+          ],
+        );
         return bloc;
       },
-      act: (bloc) {
-        print('Sending event: StartParkingEvent');
-        bloc.add(StartParkingEvent(1, {'vehicle': 'ABC123'}, 'test'));
-      },
-      expect: () {
-        print('Expecting: Error state for start');
-        return [
-          isA<ParkingState>().having(
-            (s) => s.errorMessage,
-            'errorMessage',
-            contains('Start failed'),
+      act:
+          (bloc) => bloc.add(
+            AddParkingSpaceEvent({
+              'address': 'Street 1',
+              'pricePerHour': 10.0,
+            }, 'test-uid'),
           ),
-        ];
-      },
+      expect:
+          () => [
+            isA<ParkingPlaceLoadedState>().having((s) => s.spaces, 'spaces', [
+              {'id': '23232', 'address': 'Street 1', 'pricePerHour': 10.0},
+            ]),
+          ],
     );
 
-    blocTest<ParkingBloc, ParkingState>(
-      'StopParkingEvent failure → emits error state',
+    blocTest<ParkingPlaceBloc, ParkingSpaceState>(
+      'emits [Loaded] after DeleteParkingSpaceEvent succeeds',
       build: () {
-        when(
-          () => mockRepo.stopParking(any(), any(), any()),
-        ).thenThrow(Exception('Stop failed'));
+        when(() => mockRepo.delete(any())).thenAnswer((_) async {});
+        when(() => mockRepo.getAll()).thenAnswer((_) async => []);
         return bloc;
       },
-      act: (bloc) {
-        print('Sending event: StopParkingEvent');
-        bloc.add(StopParkingEvent(1, {'parking': 'XYZ'}, 'test'));
-      },
-      expect: () {
-        print('Expecting: Error state for stop');
-        return [
-          isA<ParkingState>().having(
-            (s) => s.errorMessage,
-            'errorMessage',
-            contains('Stop failed'),
-          ),
-        ];
-      },
+      act: (bloc) => bloc.add(DeleteParkingSpaceEvent('2323', 'test-uid')),
+      expect:
+          () => [
+            isA<ParkingPlaceLoadedState>().having(
+              (s) => s.spaces,
+              'spaces',
+              [],
+            ),
+          ],
     );
   });
 }
