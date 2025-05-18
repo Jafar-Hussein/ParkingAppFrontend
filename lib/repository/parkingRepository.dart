@@ -14,7 +14,7 @@ class ParkingRepository {
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getAvailableSpaces() async {
+  Future<List<Map<String, dynamic>>> getAvailableSpaces() async { // test kommentar
     final snapshot = await _firestore.collection('parkingspace').get();
     return snapshot.docs.map((doc) => doc.data()).toList();
   }
