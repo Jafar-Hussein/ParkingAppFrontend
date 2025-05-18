@@ -4,7 +4,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:flutter_application/bloc/authentication/auth_bloc.dart';
 import 'package:flutter_application/bloc/authentication/auth_event.dart';
 import 'package:flutter_application/bloc/authentication/auth_state.dart';
-import 'package:flutter_application/repository/AuthRepository.dart';
 
 import '../repository/mock_auth_repository.dart';
 

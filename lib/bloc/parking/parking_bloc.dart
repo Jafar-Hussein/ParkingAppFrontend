@@ -44,7 +44,9 @@ class ParkingBloc extends Bloc<ParkingEvent, ParkingState> {
         event.spaceId,
         event.vehicle,
         event.ownerUid,
+        address: event.address,
       );
+
       add(LoadParkingDataEvent(event.ownerUid));
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));

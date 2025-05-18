@@ -9,8 +9,9 @@ class StartParkingEvent extends ParkingEvent {
   final String spaceId;
   final Map<String, dynamic> vehicle;
   final String ownerUid;
+  final String address; // <--- Lägg till
 
-  StartParkingEvent(this.spaceId, this.vehicle, this.ownerUid);
+  StartParkingEvent(this.spaceId, this.vehicle, this.ownerUid, this.address);
 }
 
 class StopParkingEvent extends ParkingEvent {

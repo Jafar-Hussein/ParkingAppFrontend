@@ -4,7 +4,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:flutter_application/bloc/parking/parking_bloc.dart';
 import 'package:flutter_application/bloc/parking/parking_event.dart';
 import 'package:flutter_application/bloc/parking/parking_state.dart';
-import 'package:flutter_application/repository/parkingRepository.dart';
 
 import '../repository/mock_parking_repository.dart';
 
@@ -76,7 +75,7 @@ void main() {
       },
       act: (bloc) {
         bloc.add(
-          StartParkingEvent('spaceId1', {'vehicle': 'ABC123'}, 'uid123'),
+          StartParkingEvent('spaceId1', {'vehicle': 'ABC123'}, 'uid123', 'adress111'),
         );
       },
       expect:

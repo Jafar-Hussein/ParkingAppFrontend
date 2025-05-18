@@ -72,18 +72,26 @@ class _ParkingPageState extends State<ParkingPage> {
 
                   final currentParkingPageData =
                       state.availableSpaces
+                          .where((space) => space != null)
                           .skip(_currentParkingPage * _rowsPerPage)
                           .take(_rowsPerPage)
                           .toList();
 
                   final currentHistoryPageData =
                       state.parkingHistory
+                          .where((entry) => entry != null)
                           .skip(_currentHistoryPage * _rowsPerPage)
                           .take(_rowsPerPage)
                           .toList();
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.only(
+                      top: 30,
+                      right: 16,
+                      bottom: 20,
+                      left: 16,
+                    ),
+
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -94,13 +102,17 @@ class _ParkingPageState extends State<ParkingPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        ...currentParkingPageData.map(
-                          (space) => Card(
+                        if (currentParkingPageData.isEmpty)
+                          const Text("Inga lediga parkeringsplatser hittades."),
+                        ...currentParkingPageData.map((space) {
+                          final address = space['address'] ?? 'Okänd adress';
+                          final price = space['pricePerHour'] ?? 'N/A';
+                          final spaceId = space['id'] ?? '';
+
+                          return Card(
                             child: ListTile(
-                              title: Text(space['address'] ?? 'Okänd adress'),
-                              subtitle: Text(
-                                "Pris per timme: ${space['pricePerHour']} kr",
-                              ),
+                              title: Text(address),
+                              subtitle: Text("Pris per timme: $price kr"),
                               trailing: PopupMenuButton<Map<String, dynamic>>(
                                 icon: const Icon(Icons.directions_car),
                                 itemBuilder:
@@ -112,24 +124,26 @@ class _ParkingPageState extends State<ParkingPage> {
                                               >(
                                                 value: v,
                                                 child: Text(
-                                                  v['registreringsnummer'],
+                                                  v['registreringsnummer'] ??
+                                                      'Okänt',
                                                 ),
                                               ),
                                             )
                                             .toList(),
-                                onSelected: (Map<String, dynamic> selected) {
+                                onSelected: (selected) {
                                   context.read<ParkingBloc>().add(
                                     StartParkingEvent(
-                                      space['id'].toString(),
+                                      spaceId.toString(),
                                       selected,
                                       widget.ownerUid,
+                                      address,
                                     ),
                                   );
                                 },
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -166,10 +180,10 @@ class _ParkingPageState extends State<ParkingPage> {
                               (entry) => Card(
                                 child: ListTile(
                                   title: Text(
-                                    "${entry['vehicle']['registreringsnummer']} - ${entry['parkingSpace']['address']}",
+                                    "${entry['vehicle']?['registreringsnummer'] ?? 'Okänd'} - ${entry['parkingSpace']?['address'] ?? 'Okänd'}",
                                   ),
                                   subtitle: Text(
-                                    "Start: ${entry['startTime']}",
+                                    "Start: ${entry['startTime'] ?? 'Okänt'}",
                                   ),
                                   trailing: ElevatedButton(
                                     onPressed: () {
@@ -178,7 +192,7 @@ class _ParkingPageState extends State<ParkingPage> {
                                           entry['id'],
                                           entry,
                                           widget.ownerUid,
-                                          entry['vehicle']['id'], // <- lägg till rätt ID här
+                                          entry['vehicle']?['id'] ?? '',
                                         ),
                                       );
                                     },
@@ -202,10 +216,10 @@ class _ParkingPageState extends State<ParkingPage> {
                           (history) => Card(
                             child: ListTile(
                               title: Text(
-                                "Fordon: ${history['vehicle']['registreringsnummer']}",
+                                "Fordon: ${history['vehicle']?['registreringsnummer'] ?? 'Okänd'}",
                               ),
                               subtitle: Text(
-                                "Start: ${history['startTime']}\nSlut: ${history['endTime'] ?? 'Pågående'}",
+                                "Start: ${history['startTime'] ?? 'Okänt'}\nSlut: ${history['endTime'] ?? 'Pågående'}",
                               ),
                             ),
                           ),
