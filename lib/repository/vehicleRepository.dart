@@ -1,56 +1,66 @@
-// vehicle_repository.dart
-
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import '../model/VehicleModel.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Här definierar vi en modell för Vehicle. Det kan behövas för att skapa en VehicleModel eller liknande.
-// Det är här du kan använda din egen VehicleModel om den finns.
 class VehicleRepository {
-  final String apiBase = 'http://10.0.2.2:8081'; // Adjust API base as needed
+  // Skapar en instans av Firebase Firestore
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Fetch vehicles for a specific owner
-  Future<List<VehicleModel>> getVehicles(String ownerName) async {
-    final response = await http.get(
-      Uri.parse('$apiBase/vehicles/owner/$ownerName'),
-    );
+  // Namnet på samlingen i Firestore
+  final String collection = 'vehicle';
 
-    if (response.statusCode == 200) {
-      List<dynamic> jsonResponse = json.decode(response.body);
-      return jsonResponse
-          .map((vehicle) => VehicleModel.fromJson(vehicle))
-          .toList();
-    } else {
-      throw Exception('Failed to fetch vehicles');
+  // Hämtar alla fordon som tillhör en specifik användare (via ownerUid)
+  Future<List<VehicleModel>> getVehicles(String ownerUid) async {
+    try {
+      // Hämtar dokument från 'vehicle'-samlingen där ownerUid matchar användaren
+      final snapshot =
+          await _firestore
+              .collection(collection)
+              .where('ownerUid', isEqualTo: ownerUid)
+              .get(); // snapshot innehåller alla matchande dokument
+
+      // Konverterar varje dokument i snapshot till en VehicleModel
+      return snapshot.docs.map((doc) {
+        final data = doc.data(); // Hämtar fält från varje dokument
+        return VehicleModel(
+          id: data['id'], // ID lagras manuellt i dokumentet
+          registreringsnummer: data['registreringsnummer'],
+          typ: data['typ'],
+          owner: data['ownerName'], // Namnet på ägaren
+        );
+      }).toList();
+    } catch (e) {
+      print('Fel vid hämtning av fordon: $e');
+      rethrow;
     }
   }
 
-  // Add a vehicle
+  // Lägger till ett nytt fordon i Firestore
   Future<void> addVehicle(Map<String, dynamic> vehicle) async {
-    print("Skickar fordon till backend: $vehicle"); // 🧪 Lägg till denna
+    try {
+      if (vehicle.isNotEmpty) {
+        // Lägger till dokument i Firestore och får tillbaka en referens till det nya dokumentet
+        final docRef = await _firestore.collection(collection).add(vehicle);
 
-    final response = await http.post(
-      Uri.parse('$apiBase/vehicles'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode(vehicle),
-    );
-
-    print("Svarskod: ${response.statusCode}"); // 🧪
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to add vehicle');
+        // Uppdaterar dokumentet med sitt eget Firestore-ID (sparas som 'id')
+        await _firestore.collection(collection).doc(docRef.id).update({
+          'id': docRef.id,
+        });
+      } else {
+        print('Fordon kunde inte skapas: Inga data angivna');
+      }
+    } catch (e) {
+      print('Fel vid skapande av fordon: $e');
+      rethrow;
     }
   }
 
-  // Delete a vehicle
-  Future<void> deleteVehicle(int vehicleId) async {
-    final response = await http.delete(
-      Uri.parse('$apiBase/vehicles/$vehicleId'),
-      headers: {'Content-Type': 'application/json'},
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to delete vehicle');
+  // Tar bort ett fordon baserat på dess Firestore ID
+  Future<void> deleteVehicle(String vehicleId) async {
+    try {
+      await _firestore.collection(collection).doc(vehicleId).delete();
+    } catch (e) {
+      print('Fel vid borttagning av fordon: $e');
+      rethrow;
     }
   }
 }

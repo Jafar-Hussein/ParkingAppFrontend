@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class VehicleModel {
-  final int id;
+  final String id;
   final String registreringsnummer;
   final String typ;
   final String owner;
@@ -11,12 +13,14 @@ class VehicleModel {
     required this.owner,
   });
 
-  factory VehicleModel.fromJson(Map<String, dynamic> json) {
+  factory VehicleModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+
     return VehicleModel(
-      id: json['id'],
-      registreringsnummer: json['registreringsnummer'],
-      typ: json['typ'],
-      owner: json['owner']['namn'],
+      id: data['id'] ?? doc.id,
+      registreringsnummer: data['registreringsnummer'] ?? '',
+      typ: data['typ'] ?? '',
+      owner: data['ownerName'] ?? '',
     );
   }
 }

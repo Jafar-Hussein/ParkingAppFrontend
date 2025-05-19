@@ -18,9 +18,9 @@ class ParkingBloc extends Bloc<ParkingEvent, ParkingState> {
   ) async {
     emit(state.copyWith(isLoading: true));
     try {
-      final history = await parkingRepository.getParkingHistory();
+      final history = await parkingRepository.getParkingHistory(event.ownerUid);
       final spaces = await parkingRepository.getAvailableSpaces();
-      final vehicles = await parkingRepository.getVehicles(event.ownerName);
+      final vehicles = await parkingRepository.getVehicles(event.ownerUid);
 
       emit(
         state.copyWith(
@@ -43,9 +43,11 @@ class ParkingBloc extends Bloc<ParkingEvent, ParkingState> {
       await parkingRepository.startParking(
         event.spaceId,
         event.vehicle,
-        event.ownerName,
+        event.ownerUid,
+        address: event.address,
       );
-      add(LoadParkingDataEvent(event.ownerName));
+
+      add(LoadParkingDataEvent(event.ownerUid));
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));
     }
@@ -56,12 +58,8 @@ class ParkingBloc extends Bloc<ParkingEvent, ParkingState> {
     Emitter<ParkingState> emit,
   ) async {
     try {
-      await parkingRepository.stopParking(
-        event.parkingId,
-        event.parking,
-        event.ownerName,
-      );
-      add(LoadParkingDataEvent(event.ownerName));
+      await parkingRepository.stopParking(event.parkingId, event.parking);
+      add(LoadParkingDataEvent(event.ownerUid));
     } catch (e) {
       emit(state.copyWith(errorMessage: e.toString()));
     }

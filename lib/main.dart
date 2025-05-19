@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application/bloc/vehicle/vehicle_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 import './bloc/authentication/auth_bloc.dart';
 import './bloc/authentication/auth_event.dart';
@@ -16,8 +14,12 @@ import 'MapScreen.dart';
 import './pages/ParkingPage.dart';
 import './pages/ParkingSpacePage.dart';
 import './pages/VehiclePage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     BlocProvider(
       create: (context) => AuthBloc(AuthRepository()),
@@ -104,7 +106,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool isLoggedIn = false;
   String? loggedInUser;
-  int? loggedInUserId;
+  String? loggedInUserUid;
 
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -139,8 +141,8 @@ class _MyHomePageState extends State<MyHomePage> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                final namn = _usernameController.text;
-                final pnr = _passwordController.text;
+                final namn = _usernameController.text.trim();
+                final pnr = _passwordController.text.trim();
 
                 if (namn.isNotEmpty && pnr.isNotEmpty) {
                   if (isRegister) {
@@ -159,12 +161,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void navigateToPage(String page) {
-    if (!isLoggedIn || loggedInUser == null) {
+    if (!isLoggedIn || loggedInUser == null || loggedInUserUid == null) {
       _showLoginDialog(isRegister: false);
       return;
     }
 
-    Widget nextPage;
+    late Widget nextPage;
 
     switch (page) {
       case 'Parking':
@@ -172,24 +174,29 @@ class _MyHomePageState extends State<MyHomePage> {
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
-          ownerId: loggedInUserId!,
+          ownerUid: loggedInUserUid!,
         );
         break;
       case 'Vehicle':
-        nextPage = VehiclePage(
-          isDarkMode: widget.isDarkMode,
-          toggleTheme: widget.toggleTheme,
-          ownerName: loggedInUser!,
-          ownerId: loggedInUserId!, // 🟢 Lägg till denna rad
+        nextPage = BlocProvider(
+          create:
+              (_) =>
+                  VehicleBloc(VehicleRepository())
+                    ..add(LoadVehiclesEvent(loggedInUserUid!)),
+          child: VehiclePage(
+            isDarkMode: widget.isDarkMode,
+            toggleTheme: widget.toggleTheme,
+            ownerName: loggedInUser!,
+            ownerUid: loggedInUserUid!,
+          ),
         );
         break;
-
       case 'ParkingSpace':
         nextPage = ParkingSpacePage(
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
-          ownerId: loggedInUserId!,
+          ownerUid: loggedInUserUid!,
         );
         break;
       default:
@@ -207,7 +214,7 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             isLoggedIn = true;
             loggedInUser = state.person['namn'];
-            loggedInUserId = state.person['id'];
+            loggedInUserUid = state.person['uid'];
           });
           Navigator.of(context).pop();
         } else if (state is AuthErrorState) {
@@ -217,7 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       },
       child: Scaffold(
-        body: Column(children: [Expanded(flex: 1, child: MapScreen())]),
+        body: Column(children: [Expanded(child: MapScreen())]),
         bottomNavigationBar: BottomAppBar(
           color: Theme.of(context).primaryColor,
           child: Row(
@@ -256,7 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       setState(() {
                         isLoggedIn = false;
                         loggedInUser = null;
-                        loggedInUserId = null;
+                        loggedInUserUid = null;
                         _usernameController.clear();
                         _passwordController.clear();
                       });

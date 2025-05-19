@@ -1,38 +1,83 @@
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthRepository {
-  final String baseUrl = 'http://10.0.2.2:8081';
-
-  Future<Map<String, dynamic>> login(String namn, String personnummer) async {
-    final response = await http.get(Uri.parse('$baseUrl/persons/namn/$namn'));
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['personnummer'] == personnummer) {
-        return data;
-      } else {
-        throw Exception("Fel personnummer");
-      }
-    } else {
-      throw Exception("Användare hittades inte");
-    }
-  }
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
 
   Future<Map<String, dynamic>> register(
     String namn,
     String personnummer,
   ) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/persons'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'namn': namn, 'personnummer': personnummer}),
-    );
+    final email = '${namn.trim()}@test.se';
+    final password = personnummer.trim();
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Registrering misslyckades");
+    try {
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Spara användaren i Firestore
+      await _firestore.collection("personer").doc(result.user!.uid).set({
+        'uid': result.user!.uid,
+        'namn': namn,
+        'personnummer': personnummer,
+      });
+
+      return {
+        'uid': result.user!.uid,
+        'namn': namn,
+        'personnummer': personnummer,
+      };
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_handleAuthError(e));
+    } catch (e) {
+      throw Exception("Okänt fel vid registrering: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> login(String namn, String personnummer) async {
+    final email = '${namn.trim()}@test.se';
+    final password = personnummer.trim();
+
+    try {
+      UserCredential result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Hämta användardata från Firestore
+      final doc =
+          await _firestore.collection("personer").doc(result.user!.uid).get();
+      final data = doc.data();
+
+      return {
+        'uid': result.user!.uid,
+        'namn': data?['namn'],
+        'personnummer': data?['personnummer'],
+      };
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_handleAuthError(e));
+    } catch (e) {
+      throw Exception("Okänt fel vid inloggning: $e");
+    }
+  }
+
+  String _handleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'Ogiltig e-postadress';
+      case 'user-not-found':
+        return 'Användare hittades inte';
+      case 'wrong-password':
+        return 'Fel lösenord';
+      case 'email-already-in-use':
+        return 'E-postadressen är redan registrerad';
+      case 'weak-password':
+        return 'Lösenordet är för svagt (minst 6 tecken krävs)';
+      default:
+        return 'Autentiseringsfel: ${e.message}';
     }
   }
 }

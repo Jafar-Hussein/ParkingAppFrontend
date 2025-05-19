@@ -10,14 +10,14 @@ class VehiclePage extends StatelessWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
-  final int ownerId;
+  final String ownerUid;
 
   const VehiclePage({
     super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-    required this.ownerId,
+    required this.ownerUid,
   });
 
   @override
@@ -26,14 +26,14 @@ class VehiclePage extends StatelessWidget {
       create:
           (_) =>
               VehicleBloc(VehicleRepository())
-                ..add(LoadVehiclesEvent(ownerName)),
+                ..add(LoadVehiclesEvent(ownerUid)),
       child: Builder(
         builder:
             (context) => _VehiclePageContent(
               isDarkMode: isDarkMode,
               toggleTheme: toggleTheme,
               ownerName: ownerName,
-              ownerId: ownerId,
+              ownerUid: ownerUid,
             ),
       ),
     );
@@ -44,13 +44,13 @@ class _VehiclePageContent extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
-  final int ownerId;
+  final String ownerUid;
 
   const _VehiclePageContent({
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-    required this.ownerId,
+    required this.ownerUid,
   });
 
   @override
@@ -61,25 +61,14 @@ class _VehiclePageContentState extends State<_VehiclePageContent> {
   int _currentPage = 0;
   final int _rowsPerPage = 5;
 
-  void _goToNextPage() {
-    setState(() {
-      _currentPage++;
-    });
-  }
-
-  void _goToPreviousPage() {
-    setState(() {
-      _currentPage--;
-    });
-  }
+  void _goToNextPage() => setState(() => _currentPage++);
+  void _goToPreviousPage() => setState(() => _currentPage--);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _addVehicleDialog(context);
-        },
+        onPressed: () => _addVehicleDialog(context),
         tooltip: "Lägg till fordon",
         child: const Icon(Icons.add),
       ),
@@ -90,7 +79,7 @@ class _VehiclePageContentState extends State<_VehiclePageContent> {
             toggleTheme: widget.toggleTheme,
             isDarkMode: widget.isDarkMode,
             ownerName: widget.ownerName,
-            ownerId: widget.ownerId,
+            ownerUid: widget.ownerUid,
           ),
           Expanded(
             child: BlocBuilder<VehicleBloc, VehicleState>(
@@ -219,12 +208,13 @@ class _VehiclePageContentState extends State<_VehiclePageContent> {
                 final newVehicle = {
                   "registreringsnummer": regController.text,
                   "typ": typController.text,
-                  "owner": {"id": widget.ownerId, "namn": widget.ownerName},
+                  "ownerUid": widget.ownerUid,
+                  "ownerName": widget.ownerName,
                 };
 
                 BlocProvider.of<VehicleBloc>(
                   context,
-                ).add(AddVehicleEvent(newVehicle));
+                ).add(AddVehicleEvent(newVehicle, widget.ownerUid));
                 Navigator.of(dialogContext).pop();
               },
               child: const Text('Spara'),
@@ -239,9 +229,9 @@ class _VehiclePageContentState extends State<_VehiclePageContent> {
     );
   }
 
-  Future<void> _deleteVehicle(BuildContext context, int vehicleId) async {
+  Future<void> _deleteVehicle(BuildContext context, String vehicleId) async {
     context.read<VehicleBloc>().add(
-      DeleteVehicleEvent(vehicleId, widget.ownerName),
+      DeleteVehicleEvent(vehicleId, widget.ownerName, widget.ownerUid),
     );
   }
 }

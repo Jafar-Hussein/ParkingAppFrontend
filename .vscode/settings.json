@@ -1,0 +1,13 @@
+{
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "dart.flutterSdkPath": "C:/Users/jafar/appdev/flutter",
+  "dart.sdkPath": "C:/Users/jafar/appdev/flutter/bin/cache/dart-sdk",
+  "dart.useFlutterPubGet": true,
+  "dart.promptToRunIfErrors": false,
+  "dart.runPubGetOnPubspecChanges": true,
+  "dart.flutterRunAdditionalArgs": [
+    "--no-sound-null-safety"
+  ],
+  "dart.debugExternalLibraries": false,
+  "dart.debugSdkLibraries": false
+}

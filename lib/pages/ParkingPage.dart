@@ -10,14 +10,14 @@ class ParkingPage extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
-  final int ownerId;
+  final String ownerUid;
 
   const ParkingPage({
     super.key,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
-    required this.ownerId,
+    required this.ownerUid,
   });
 
   @override
@@ -38,9 +38,9 @@ class _ParkingPageState extends State<ParkingPage> {
   Widget build(BuildContext context) {
     return BlocProvider<ParkingBloc>(
       create: (context) {
-        final bloc = ParkingBloc(ParkingRepository()); // ✅ Skicka in dependency
+        final bloc = ParkingBloc(ParkingRepository());
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          bloc.add(LoadParkingDataEvent(widget.ownerName));
+          bloc.add(LoadParkingDataEvent(widget.ownerUid));
         });
         return bloc;
       },
@@ -52,7 +52,7 @@ class _ParkingPageState extends State<ParkingPage> {
               toggleTheme: widget.toggleTheme,
               isDarkMode: widget.isDarkMode,
               ownerName: widget.ownerName,
-              ownerId: widget.ownerId,
+              ownerUid: widget.ownerUid,
             ),
             Expanded(
               child: BlocBuilder<ParkingBloc, ParkingState>(
@@ -72,18 +72,26 @@ class _ParkingPageState extends State<ParkingPage> {
 
                   final currentParkingPageData =
                       state.availableSpaces
+                          .where((space) => space != null)
                           .skip(_currentParkingPage * _rowsPerPage)
                           .take(_rowsPerPage)
                           .toList();
 
                   final currentHistoryPageData =
                       state.parkingHistory
+                          .where((entry) => entry != null)
                           .skip(_currentHistoryPage * _rowsPerPage)
                           .take(_rowsPerPage)
                           .toList();
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.only(
+                      top: 30,
+                      right: 16,
+                      bottom: 20,
+                      left: 16,
+                    ),
+
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -94,23 +102,30 @@ class _ParkingPageState extends State<ParkingPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        ...currentParkingPageData.map(
-                          (space) => Card(
+                        if (currentParkingPageData.isEmpty)
+                          const Text("Inga lediga parkeringsplatser hittades."),
+                        ...currentParkingPageData.map((space) {
+                          final address = space['address'] ?? 'Okänd adress';
+                          final price = space['pricePerHour'] ?? 'N/A';
+                          final spaceId = space['id'] ?? '';
+
+                          return Card(
                             child: ListTile(
-                              title: Text(space['address'] ?? 'Okänd adress'),
-                              subtitle: Text(
-                                "Pris per timme: ${space['pricePerHour']} kr",
-                              ),
-                              trailing: PopupMenuButton<Map>(
+                              title: Text(address),
+                              subtitle: Text("Pris per timme: $price kr"),
+                              trailing: PopupMenuButton<Map<String, dynamic>>(
                                 icon: const Icon(Icons.directions_car),
                                 itemBuilder:
                                     (_) =>
                                         state.vehicles
                                             .map(
-                                              (v) => PopupMenuItem<Map>(
+                                              (v) => PopupMenuItem<
+                                                Map<String, dynamic>
+                                              >(
                                                 value: v,
                                                 child: Text(
-                                                  v['registreringsnummer'],
+                                                  v['registreringsnummer'] ??
+                                                      'Okänt',
                                                 ),
                                               ),
                                             )
@@ -118,16 +133,17 @@ class _ParkingPageState extends State<ParkingPage> {
                                 onSelected: (selected) {
                                   context.read<ParkingBloc>().add(
                                     StartParkingEvent(
-                                      space['id'],
+                                      spaceId.toString(),
                                       selected,
-                                      widget.ownerName,
+                                      widget.ownerUid,
+                                      address,
                                     ),
                                   );
                                 },
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        }),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -164,10 +180,10 @@ class _ParkingPageState extends State<ParkingPage> {
                               (entry) => Card(
                                 child: ListTile(
                                   title: Text(
-                                    "${entry['vehicle']['registreringsnummer']} - ${entry['parkingSpace']['address']}",
+                                    "${entry['vehicle']?['registreringsnummer'] ?? 'Okänd'} - ${entry['parkingSpace']?['address'] ?? 'Okänd'}",
                                   ),
                                   subtitle: Text(
-                                    "Start: ${entry['startTime']}",
+                                    "Start: ${entry['startTime'] ?? 'Okänt'}",
                                   ),
                                   trailing: ElevatedButton(
                                     onPressed: () {
@@ -175,7 +191,8 @@ class _ParkingPageState extends State<ParkingPage> {
                                         StopParkingEvent(
                                           entry['id'],
                                           entry,
-                                          widget.ownerName,
+                                          widget.ownerUid,
+                                          entry['vehicle']?['id'] ?? '',
                                         ),
                                       );
                                     },
@@ -199,10 +216,10 @@ class _ParkingPageState extends State<ParkingPage> {
                           (history) => Card(
                             child: ListTile(
                               title: Text(
-                                "Fordon: ${history['vehicle']['registreringsnummer']}",
+                                "Fordon: ${history['vehicle']?['registreringsnummer'] ?? 'Okänd'}",
                               ),
                               subtitle: Text(
-                                "Start: ${history['startTime']}\nSlut: ${history['endTime'] ?? 'Pågående'}",
+                                "Start: ${history['startTime'] ?? 'Okänt'}\nSlut: ${history['endTime'] ?? 'Pågående'}",
                               ),
                             ),
                           ),
