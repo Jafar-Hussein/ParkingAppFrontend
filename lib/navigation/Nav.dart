@@ -6,6 +6,7 @@ import '../pages/VehiclePage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/vehicle/vehicle_bloc.dart';
 import '../repository/vehicleRepository.dart';
+import '../repository/NotificationRepository.dart'; // ✅ Lägg till import
 
 class CustomNavigationRail extends StatefulWidget {
   final int selectedIndex;
@@ -13,6 +14,7 @@ class CustomNavigationRail extends StatefulWidget {
   final bool isDarkMode;
   final String ownerName;
   final String ownerUid;
+  final NotificationRepository notificationRepository; // ✅ Ny parameter
 
   const CustomNavigationRail({
     super.key,
@@ -21,6 +23,7 @@ class CustomNavigationRail extends StatefulWidget {
     required this.isDarkMode,
     required this.ownerName,
     required this.ownerUid,
+    required this.notificationRepository, // ✅ Lägg till här också
   });
 
   @override
@@ -52,6 +55,8 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   toggleTheme: widget.toggleTheme,
                   ownerName: widget.ownerName,
                   ownerUid: widget.ownerUid,
+                  notificationRepository:
+                      widget.notificationRepository, // ✅ här
                 ),
           ),
         );
@@ -71,6 +76,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                     toggleTheme: widget.toggleTheme,
                     ownerName: widget.ownerName,
                     ownerUid: widget.ownerUid,
+                    notificationRepository: widget.notificationRepository,
                   ),
                 ),
           ),
@@ -86,6 +92,7 @@ class _CustomNavigationRailState extends State<CustomNavigationRail> {
                   toggleTheme: widget.toggleTheme,
                   ownerName: widget.ownerName,
                   ownerUid: widget.ownerUid,
+                  notificationRepository: widget.notificationRepository,
                 ),
           ),
         );

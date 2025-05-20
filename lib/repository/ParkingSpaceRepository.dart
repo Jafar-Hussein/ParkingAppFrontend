@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class Parkingspacerepository {
+  
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final String collection = 'parkingspace';
 
   Future<List<Map<String, dynamic>>> getAll() async {
