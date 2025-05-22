@@ -1,4 +1,4 @@
-import 'dart:math'; // För att generera 32-bitars ID
+// För att generera 32-bitars ID
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'parking_event.dart';
 import 'parking_state.dart';
