@@ -9,28 +9,45 @@ class NotificationRepository {
   final _plugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
-    await _configureTimeZone();
+    try {
+      await _configureTimeZone();
 
-    final android = AndroidInitializationSettings('@drawable/ic_notification');
-    final ios = DarwinInitializationSettings();
-    final settings = InitializationSettings(android: android, iOS: ios);
-    await _plugin.initialize(settings);
+      final android = AndroidInitializationSettings(
+        '@drawable/ic_notification',
+      );
+      final ios = DarwinInitializationSettings();
+      final settings = InitializationSettings(android: android, iOS: ios);
+      await _plugin.initialize(settings);
+    } catch (e) {
+      print('Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> _configureTimeZone() async {
-    tz.initializeTimeZones();
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    try {
+      tz.initializeTimeZones();
+      final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      print('Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> requestPermissions() async {
-    if (Platform.isAndroid) {
-      final androidImpl =
-          _plugin
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >();
-      await androidImpl?.requestNotificationsPermission();
+    try {
+      if (Platform.isAndroid) {
+        final androidImpl =
+            _plugin
+                .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin
+                >();
+        await androidImpl?.requestNotificationsPermission();
+      }
+    } catch (e) {
+      print('Error: $e');
+      rethrow;
     }
   }
 
@@ -40,34 +57,46 @@ class NotificationRepository {
     required DateTime deliveryTime,
     required int id,
   }) async {
-    await requestPermissions();
-    const androidDetails = AndroidNotificationDetails(
-      'channel_id',
-      'Standard notifications',
-      channelDescription: 'Notisbeskrivning',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
+    try {
+      await requestPermissions();
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            'custom_sound_channel', // nytt unikt id!
+            'Ljudkanal',
+            channelDescription: 'Kanal med anpassat ljud',
+            importance: Importance.max,
+            priority: Priority.high,
+            sound: RawResourceAndroidNotificationSound('notification_sound'),
+          );
 
-    const iosDetails = DarwinNotificationDetails();
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+      const iosDetails = DarwinNotificationDetails();
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      content,
-      tz.TZDateTime.from(deliveryTime, tz.local),
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'optional payload',
-    );
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        content,
+        tz.TZDateTime.from(deliveryTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: 'optional payload',
+      );
+    } catch (e) {
+      print('Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> cancelNotification(int id) async {
-    await _plugin.cancel(id);
+    try {
+      await _plugin.cancel(id);
+    } catch (e) {
+      print('Error: $e');
+      rethrow;
+    }
   }
 }

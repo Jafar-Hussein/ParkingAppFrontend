@@ -24,7 +24,7 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           TileLayer(
             urlTemplate:
-                "https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=618c42c935c148cca77aab7d3a3d34e9", //lägg api nyckel här
+                "https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=", //lägg api nyckel här
             subdomains: ['a', 'b', 'c'],
           ),
           MarkerLayer(
