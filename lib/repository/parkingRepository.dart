@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ParkingRepository {
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
   final String collection = 'parking';
 
   Future<List<Map<String, dynamic>>> getParkingHistory(String uid) async {

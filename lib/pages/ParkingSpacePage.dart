@@ -4,6 +4,7 @@ import '../bloc/parkingplace/parking_space_bloc.dart';
 import '../bloc/parkingplace/parking_space_event.dart';
 import '../bloc/parkingplace/parking_space_state.dart';
 import '../repository/ParkingSpaceRepository.dart';
+import '../repository/NotificationRepository.dart';
 import '../navigation/Nav.dart';
 
 class ParkingSpacePage extends StatefulWidget {
@@ -11,6 +12,7 @@ class ParkingSpacePage extends StatefulWidget {
   final Function(bool) toggleTheme;
   final String ownerName;
   final String ownerUid;
+  final NotificationRepository notificationRepository;
 
   const ParkingSpacePage({
     super.key,
@@ -18,6 +20,7 @@ class ParkingSpacePage extends StatefulWidget {
     required this.toggleTheme,
     required this.ownerName,
     required this.ownerUid,
+    required this.notificationRepository,
   });
 
   @override
@@ -42,6 +45,7 @@ class _ParkingSpacePageState extends State<ParkingSpacePage> {
             isDarkMode: widget.isDarkMode,
             ownerName: widget.ownerName,
             ownerUid: widget.ownerUid,
+            notificationRepository: widget.notificationRepository,
           ),
           Expanded(
             child: BlocProvider(

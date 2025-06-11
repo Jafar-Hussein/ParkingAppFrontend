@@ -9,6 +9,7 @@ import './bloc/authentication/auth_state.dart';
 import './repository/AuthRepository.dart';
 import './bloc/vehicle/vehicle_bloc.dart';
 import './repository/vehicleRepository.dart';
+import './repository/NotificationRepository.dart';
 
 import 'MapScreen.dart';
 import './pages/ParkingPage.dart';
@@ -20,16 +21,19 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final notificationRepository = NotificationRepository();
+  await notificationRepository.init();
   runApp(
     BlocProvider(
       create: (context) => AuthBloc(AuthRepository()),
-      child: const MyApp(),
+      child: MyApp(notificationRepository: notificationRepository),
     ),
   );
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final NotificationRepository notificationRepository;
+  const MyApp({super.key, required this.notificationRepository});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -82,6 +86,7 @@ class _MyAppState extends State<MyApp> {
         title: 'Parking App',
         toggleTheme: toggleTheme,
         isDarkMode: _isDarkMode,
+        notificationRepository: widget.notificationRepository,
       ),
     );
   }
@@ -91,12 +96,14 @@ class MyHomePage extends StatefulWidget {
   final String title;
   final Function(bool) toggleTheme;
   final bool isDarkMode;
+  final NotificationRepository notificationRepository;
 
   const MyHomePage({
     super.key,
     required this.title,
     required this.toggleTheme,
     required this.isDarkMode,
+    required this.notificationRepository,
   });
 
   @override
@@ -175,6 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
           ownerUid: loggedInUserUid!,
+          notificationRepository: widget.notificationRepository,
         );
         break;
       case 'Vehicle':
@@ -188,6 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
             toggleTheme: widget.toggleTheme,
             ownerName: loggedInUser!,
             ownerUid: loggedInUserUid!,
+            notificationRepository: widget.notificationRepository,
           ),
         );
         break;
@@ -197,6 +206,7 @@ class _MyHomePageState extends State<MyHomePage> {
           toggleTheme: widget.toggleTheme,
           ownerName: loggedInUser!,
           ownerUid: loggedInUserUid!,
+          notificationRepository: widget.notificationRepository,
         );
         break;
       default:

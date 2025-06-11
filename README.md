@@ -1,12 +1,12 @@
 # 🚗 Parkeringsapplikation – Flutter Frontend
 
-Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [ParkingAppCliDb](https://github.com/Jafar-Hussein/ParkingAppCliDb) – ett backendprojekt med REST API:er för hantering av användare, fordon och parkeringar. Applikationen är byggd för att användas av slutanvändare som vill:
+Detta är en Flutter-baserad mobilapplikation som använder **Firebase** som backend för hantering av användare, fordon och parkeringar. Applikationen är byggd för att användas av slutanvändare som vill:
 
-- Registrera sig och logga in
-- Lägga till och hantera fordon
-- Se lediga parkeringsplatser
-- Starta och avsluta parkering
-- Se parkeringshistorik
+- Skapa konto och logga in med Firebase Authentication  
+- Hantera fordon i Firestore  
+- Se lediga parkeringsplatser  
+- Starta och avsluta parkeringar (lagras i Firestore)  
+- Se historik över tidigare parkeringar  
 
 ---
 
@@ -26,6 +26,11 @@ Detta är en Flutter-baserad mobilapplikation som fungerar som frontend för [Pa
 - Starta en parkering genom att välja fordon
 - Avsluta pågående parkeringar
 - Se historik över avslutade parkeringar
+
+### 4. Lokala notifikationer
+- Påminnelse om pågående parkeringar med schemalagda notifikationer
+- Anpassade ljud och exakt leveranstid (Android)
+- Stöd för både Android och iOS
 
 ---
 

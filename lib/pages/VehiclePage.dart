@@ -5,12 +5,14 @@ import '../bloc/vehicle/vehicle_state.dart';
 import '../bloc/vehicle/vehicle_event.dart';
 import '../navigation/Nav.dart';
 import '../repository/vehicleRepository.dart';
+import '../repository/NotificationRepository.dart';
 
 class VehiclePage extends StatelessWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
   final String ownerUid;
+  final NotificationRepository notificationRepository;
 
   const VehiclePage({
     super.key,
@@ -18,6 +20,7 @@ class VehiclePage extends StatelessWidget {
     required this.toggleTheme,
     required this.ownerName,
     required this.ownerUid,
+    required this.notificationRepository,
   });
 
   @override
@@ -34,6 +37,7 @@ class VehiclePage extends StatelessWidget {
               toggleTheme: toggleTheme,
               ownerName: ownerName,
               ownerUid: ownerUid,
+              notificationRepository: notificationRepository,
             ),
       ),
     );
@@ -45,12 +49,14 @@ class _VehiclePageContent extends StatefulWidget {
   final Function(bool) toggleTheme;
   final String ownerName;
   final String ownerUid;
+  final NotificationRepository notificationRepository;
 
   const _VehiclePageContent({
     required this.isDarkMode,
     required this.toggleTheme,
     required this.ownerName,
     required this.ownerUid,
+    required this.notificationRepository,
   });
 
   @override
@@ -80,6 +86,7 @@ class _VehiclePageContentState extends State<_VehiclePageContent> {
             isDarkMode: widget.isDarkMode,
             ownerName: widget.ownerName,
             ownerUid: widget.ownerUid,
+            notificationRepository: widget.notificationRepository,
           ),
           Expanded(
             child: BlocBuilder<VehicleBloc, VehicleState>(

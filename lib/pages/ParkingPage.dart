@@ -5,12 +5,14 @@ import '../bloc/parking/parking_event.dart';
 import '../bloc/parking/parking_state.dart';
 import '../navigation/Nav.dart';
 import '../repository/parkingRepository.dart';
+import '../repository/NotificationRepository.dart';
 
 class ParkingPage extends StatefulWidget {
   final bool isDarkMode;
   final Function(bool) toggleTheme;
   final String ownerName;
   final String ownerUid;
+  final NotificationRepository notificationRepository; // 👈 Lägg till detta
 
   const ParkingPage({
     super.key,
@@ -18,6 +20,7 @@ class ParkingPage extends StatefulWidget {
     required this.toggleTheme,
     required this.ownerName,
     required this.ownerUid,
+    required this.notificationRepository, // 👈 Lägg till detta
   });
 
   @override
@@ -38,7 +41,7 @@ class _ParkingPageState extends State<ParkingPage> {
   Widget build(BuildContext context) {
     return BlocProvider<ParkingBloc>(
       create: (context) {
-        final bloc = ParkingBloc(ParkingRepository());
+        final bloc = ParkingBloc(ParkingRepository(), NotificationRepository());
         WidgetsBinding.instance.addPostFrameCallback((_) {
           bloc.add(LoadParkingDataEvent(widget.ownerUid));
         });
@@ -53,6 +56,7 @@ class _ParkingPageState extends State<ParkingPage> {
               isDarkMode: widget.isDarkMode,
               ownerName: widget.ownerName,
               ownerUid: widget.ownerUid,
+              notificationRepository: widget.notificationRepository,
             ),
             Expanded(
               child: BlocBuilder<ParkingBloc, ParkingState>(

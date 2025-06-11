@@ -6,14 +6,17 @@ import 'package:flutter_application/bloc/parking/parking_event.dart';
 import 'package:flutter_application/bloc/parking/parking_state.dart';
 
 import '../repository/mock_parking_repository.dart';
+import '../repository/MockNotificationRepository.dart';
 
 void main() {
-  late ParkingBloc bloc;
   late MockParkingRepository mockRepo;
+  late MockNotificationRepository mockNotificationRepo;
+  late ParkingBloc bloc;
 
   setUp(() {
     mockRepo = MockParkingRepository();
-    bloc = ParkingBloc(mockRepo);
+    mockNotificationRepo = MockNotificationRepository();
+    bloc = ParkingBloc(mockRepo, mockNotificationRepo);
   });
 
   tearDown(() => bloc.close());
@@ -75,7 +78,12 @@ void main() {
       },
       act: (bloc) {
         bloc.add(
-          StartParkingEvent('spaceId1', {'vehicle': 'ABC123'}, 'uid123', 'adress111'),
+          StartParkingEvent(
+            'spaceId1',
+            {'vehicle': 'ABC123'},
+            'uid123',
+            'adress111',
+          ),
         );
       },
       expect:
