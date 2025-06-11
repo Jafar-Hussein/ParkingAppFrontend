@@ -61,7 +61,7 @@ class NotificationRepository {
       await requestPermissions();
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-            'custom_sound_channel', // nytt unikt id!
+            'custom_sound_channel', //unikt id!
             'Ljudkanal',
             channelDescription: 'Kanal med anpassat ljud',
             importance: Importance.max,
